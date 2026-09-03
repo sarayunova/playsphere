@@ -257,7 +257,12 @@ public sealed partial class PlayerPage : Page
         // scratch (it must be constructed with swap-chain pointers that only exist once the
         // VideoView has initialized), which runs synchronously and can take a few seconds.
         // Surface that as a visible loading state so it reads as "loading", not a frozen app.
+        // Play is disabled for the same span: libVLC's MediaPlayer.Play() fails immediately
+        // (returns false, no visible error) if called before this attach has bound a video
+        // renderer — pressing Play during this window silently landed the engine in its Error
+        // state (this was the root cause behind most "Play() returned false" reports).
         AttachingSurfacePanel.Visibility = Visibility.Visible;
+        PlayPauseButton.IsEnabled = false;
 
         try
         {
@@ -274,6 +279,7 @@ public sealed partial class PlayerPage : Page
         finally
         {
             AttachingSurfacePanel.Visibility = Visibility.Collapsed;
+            PlayPauseButton.IsEnabled = true;
         }
     }
 
