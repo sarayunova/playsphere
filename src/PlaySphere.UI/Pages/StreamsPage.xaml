@@ -1,0 +1,25 @@
+<Page
+    x:Class="PlaySphere.UI.Pages.StreamsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{ThemeResource BrushBackgroundPrimary}">
+
+    <StackPanel Padding="28" Spacing="{ThemeResource SpacingMedium}">
+        <TextBlock Style="{ThemeResource PageTitleTextStyle}" Text="Streams" />
+        <TextBlock
+            Style="{ThemeResource SecondaryTextStyle}"
+            Text="Network playback — HTTP, HTTPS, HLS, DASH and RTSP URLs."
+            TextWrapping="Wrap" />
+
+        <Border Style="{ThemeResource EmptyStateCardStyle}" Margin="0,12,0,0">
+            <StackPanel Spacing="8" VerticalAlignment="Center">
+                <TextBlock Style="{ThemeResource SectionHeaderTextStyle}" Text="No streams yet" />
+                <TextBlock
+                    Style="{ThemeResource MutedTextStyle}"
+                    Text="Network playback arrives in Phase 8."
+                    TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
+    </StackPanel>
+
+</Page>

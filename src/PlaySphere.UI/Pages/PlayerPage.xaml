@@ -1,0 +1,1138 @@
+<Page
+    x:Class="PlaySphere.UI.Pages.PlayerPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:PlaySphere.UI.Controls"
+    xmlns:vis="using:PlaySphere.UI.Visualizer"
+    Background="#000000"
+    Loaded="Page_Loaded"
+    Unloaded="Page_Unloaded">
+
+    <Grid
+        x:Name="RootPlayerGrid"
+        Background="#000000"
+        PointerMoved="RootPlayerGrid_PointerMoved"
+        KeyDown="RootPlayerGrid_KeyDown"
+        IsTabStop="True"
+        FocusVisualPrimaryThickness="0">
+
+        <!-- Full-Bleed Video Surface Layer -->
+        <Border
+            x:Name="VideoSurface"
+            Background="#000000"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            DoubleTapped="VideoSurface_DoubleTapped"
+            PointerPressed="VideoSurface_PointerPressed">
+            <Grid>
+                <!-- Real video render target (PlaySphere-owned wrapper around libVLC's VideoView). -->
+                <controls:VideoSurfaceHost
+                    x:Name="VideoHost"
+                    Initialized="VideoHost_Initialized"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch" />
+
+                <!-- Win2D audio visualizer overlay (Phase 6, hidden until enabled). -->
+                <vis:VisualizerCanvas
+                    x:Name="VisualizerSurface"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Visibility="Collapsed"
+                    IsHitTestVisible="False" />
+
+                <StackPanel
+                    x:Name="VideoPlaceholderPanel"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Spacing="12"
+                    IsHitTestVisible="False">
+                    <FontIcon
+                        Glyph="&#xE714;"
+                        FontSize="48"
+                        Foreground="#475569"
+                        HorizontalAlignment="Center" />
+                    <TextBlock
+                        x:Name="VideoPlaceholder"
+                        Text="PlaySphere Universal Video Surface"
+                        Foreground="#64748B"
+                        FontSize="15"
+                        FontWeight="Medium"
+                        HorizontalAlignment="Center"
+                        TextWrapping="Wrap"
+                        TextAlignment="Center" />
+                    <TextBlock
+                        Text="Space: Play/Pause  •  ←/→: Seek ±5s  •  Shift+←/→: Seek ±30s  •  M: Mute  •  R: Rate"
+                        Foreground="#334155"
+                        FontSize="12"
+                        HorizontalAlignment="Center"
+                        TextAlignment="Center" />
+                </StackPanel>
+
+                <!-- Shown only while the video surface is attaching. The first attach in a
+                     session rebuilds the native player synchronously and can take a few
+                     seconds; without this the window can look frozen instead of loading. -->
+                <StackPanel
+                    x:Name="AttachingSurfacePanel"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Spacing="12"
+                    Visibility="Collapsed"
+                    IsHitTestVisible="False">
+                    <ProgressRing
+                        IsActive="True"
+                        Width="40"
+                        Height="40"
+                        Foreground="{ThemeResource BrushAccentBlue}"
+                        HorizontalAlignment="Center" />
+                    <TextBlock
+                        Text="Preparing player…"
+                        Foreground="{ThemeResource BrushTextMuted}"
+                        FontSize="13"
+                        FontWeight="Medium"
+                        HorizontalAlignment="Center" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Top Navigation Bar Overlay -->
+        <Grid
+            x:Name="TopNavBar"
+            VerticalAlignment="Top"
+            Height="60"
+            Background="#E6151A23"
+            Padding="16,0"
+            PointerEntered="Controls_PointerEntered"
+            PointerExited="Controls_PointerExited">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Button
+                x:Name="BackButton"
+                Grid.Column="0"
+                Content="&#xE72B;"
+                FontFamily="Segoe MDL2 Assets"
+                FontSize="16"
+                Foreground="{ThemeResource BrushTextPrimary}"
+                Background="Transparent"
+                BorderThickness="0"
+                Padding="12"
+                VerticalAlignment="Center"
+                Click="BackButton_Click"
+                ToolTipService.ToolTip="Back to Home (Esc)" />
+
+            <StackPanel
+                Grid.Column="1"
+                VerticalAlignment="Center"
+                Margin="12,0,0,0">
+                <TextBlock
+                    x:Name="TitleText"
+                    Text="Now Playing"
+                    FontSize="16"
+                    FontWeight="SemiBold"
+                    Foreground="{ThemeResource BrushTextPrimary}"
+                    TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+
+            <StackPanel
+                Grid.Column="2"
+                Orientation="Horizontal"
+                Spacing="4"
+                VerticalAlignment="Center">
+                <Button
+                    x:Name="MediaInfoButton"
+                    Content="&#xE946;"
+                    FontFamily="Segoe MDL2 Assets"
+                    FontSize="16"
+                    Foreground="{ThemeResource BrushTextSecondary}"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="10"
+                    VerticalAlignment="Center"
+                    Click="MediaInfoButton_Click"
+                    ToolTipService.ToolTip="Media Information (I)" />
+                <Button
+                    x:Name="AudioTracksButton"
+                    Content="&#xE8D6;"
+                    FontFamily="Segoe MDL2 Assets"
+                    FontSize="16"
+                    Foreground="{ThemeResource BrushTextSecondary}"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="10"
+                    VerticalAlignment="Center"
+                    Click="AudioTracksButton_Click"
+                    ToolTipService.ToolTip="Audio Tracks (A)" />
+                <Button
+                    x:Name="SubtitlesButton"
+                    Content="&#xE7F4;"
+                    FontFamily="Segoe MDL2 Assets"
+                    FontSize="16"
+                    Foreground="{ThemeResource BrushTextSecondary}"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="10"
+                    VerticalAlignment="Center"
+                    Click="SubtitlesButton_Click"
+                    ToolTipService.ToolTip="Subtitles (V)" />
+                <Button
+                    x:Name="OverflowButton"
+                    Content="&#xE712;"
+                    FontFamily="Segoe MDL2 Assets"
+                    FontSize="16"
+                    Foreground="{ThemeResource BrushTextPrimary}"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="10"
+                    VerticalAlignment="Center"
+                    ToolTipService.ToolTip="More options">
+                    <Button.Flyout>
+                        <MenuFlyout>
+                            <MenuFlyoutItem Text="Audio Tracks (A)" Icon="Volume" Click="AudioTracksButton_Click" />
+                            <MenuFlyoutItem Text="Subtitles (V)" Icon="Comment" Click="SubtitlesButton_Click" />
+                            <MenuFlyoutItem Text="Playback Speed (R)" Icon="Clock" Click="RateButton_Click" />
+                            <MenuFlyoutItem Text="Media Information (I)" Icon="Help" Click="MediaInfoButton_Click" />
+                            <MenuFlyoutItem Text="Chapters &amp; Bookmarks" Icon="Bookmarks" Click="ChaptersButton_Click" />
+                            <MenuFlyoutItem Text="Equalizer (E)" Icon="Volume" Click="EqualizerButton_Click" />
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Text="Toggle Fullscreen (F11)" Icon="FullScreen" Click="FullScreenButton_Click" />
+                            <MenuFlyoutItem Text="Toggle Mini-Player (P)" Icon="Pictures" Click="MiniPlayerButton_Click" />
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem x:Name="VisualizerMenuItem" Text="Show Visualizer" Icon="View" Click="ToggleVisualizerButton_Click" />
+                            <MenuFlyoutSubItem x:Name="VisualizerPresetSubMenu" Text="Visualizer Preset" Icon="View">
+                                <MenuFlyoutItem x:Name="VisualizerPresetSpectrumFlow" Text="Spectrum Flow" Tag="SpectrumFlow" Click="VisualizerPreset_Click" />
+                                <MenuFlyoutItem x:Name="VisualizerPresetNeonWave" Text="Neon Wave" Tag="NeonWave" Click="VisualizerPreset_Click" />
+                                <MenuFlyoutItem x:Name="VisualizerPresetOrbit" Text="Orbit Spectrum" Tag="OrbitSpectrum" Click="VisualizerPreset_Click" />
+                                <MenuFlyoutItem x:Name="VisualizerPresetPulseRings" Text="Pulse Rings" Tag="PulseRings" Click="VisualizerPreset_Click" />
+                                <MenuFlyoutItem x:Name="VisualizerPresetParticleBloom" Text="Particle Bloom" Tag="ParticleBloom" Click="VisualizerPreset_Click" />
+                                <MenuFlyoutItem x:Name="VisualizerPresetAuroraRibbon" Text="Aurora Ribbon" Tag="AuroraRibbon" Click="VisualizerPreset_Click" />
+                                <MenuFlyoutItem x:Name="VisualizerPresetPrismTunnel" Text="Prism Tunnel" Tag="PrismTunnel" Click="VisualizerPreset_Click" />
+                                <MenuFlyoutItem x:Name="VisualizerPresetAlbumPulse" Text="Album Pulse" Tag="AlbumPulse" Click="VisualizerPreset_Click" />
+                                <MenuFlyoutItem x:Name="VisualizerPresetMinimalSpectrum" Text="Minimal Spectrum" Tag="MinimalSpectrum" Click="VisualizerPreset_Click" />
+                            </MenuFlyoutSubItem>
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Text="Save Snapshot" Icon="Camera" Click="SaveSnapshotButton_Click" />
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Text="Mark In ([)" Icon="Add" Click="MarkInButton_Click" ToolTipService.ToolTip="Mark the In point at the current position" />
+                            <MenuFlyoutItem Text="Mark Out (])" Icon="Remove" Click="MarkOutButton_Click" ToolTipService.ToolTip="Mark the Out point at the current position" />
+                            <MenuFlyoutItem x:Name="ClearMarksMenuItem" Text="Clear Marks" Icon="Clear" Click="ClearMarksButton_Click" IsEnabled="False" />
+                            <MenuFlyoutItem x:Name="ExportClipMenuItem" Text="Export Clip…" Icon="Download" Click="ExportClipButton_Click" IsEnabled="False" />
+<MenuFlyoutItem x:Name="ConvertMenuItem" Text="Convert…" Icon="Switch" Click="ConvertButton_Click" IsEnabled="False" ToolTipService.ToolTip="Convert the loaded media to another format (FFmpeg)" />
+                               <MenuFlyoutSeparator />
+                               <MenuFlyoutItem Text="Conversions…" Icon="Clock" Click="ConversionsMenuItem_Click" ToolTipService.ToolTip="Review, cancel, retry or open the output folder of background jobs" />
+                           </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- Bottom Transport Controls Overlay -->
+        <Grid
+            x:Name="TransportBar"
+            VerticalAlignment="Bottom"
+            Background="#E6151A23"
+            Padding="24,14,24,16"
+            PointerEntered="Controls_PointerEntered"
+            PointerExited="Controls_PointerExited">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Timeline Row with Hover Tooltip -->
+            <Grid Grid.Row="0" Margin="0,0,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Current Position -->
+                <TextBlock
+                    x:Name="PositionText"
+                    Grid.Column="0"
+                    Text="0:00"
+                    FontSize="12"
+                    FontWeight="Medium"
+                    Foreground="{ThemeResource BrushTextSecondary}"
+                    VerticalAlignment="Center"
+                    Margin="0,0,12,0" />
+
+                <!-- Interactive Timeline Slider -->
+                <Grid Grid.Column="1" VerticalAlignment="Center">
+                    <!-- Phase 7 (PS-705): Timeline waveform — the peak-level strip for the whole
+                         file sits subtly behind the slider track (declared first so the track and
+                         thumb draw on top), and is hit-test transparent so scrubbing still reaches
+                         the Slider. Hidden for streams/audio-less media via UpdateWaveformUi(). -->
+                    <Image
+                        x:Name="WaveformImage"
+                        Stretch="Fill"
+                        Opacity="0.22"
+                        IsHitTestVisible="False"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Center"
+                        Height="40"
+                        Margin="12,0"
+                        Visibility="Collapsed" />
+
+                    <Slider
+                        x:Name="TimelineSlider"
+                        Minimum="0"
+                        Maximum="100"
+                        Value="0"
+                        IsEnabled="False"
+                        VerticalAlignment="Center"
+                        SizeChanged="TimelineSlider_SizeChanged"
+                        PointerEntered="TimelineSlider_PointerEntered"
+                        PointerMoved="TimelineSlider_PointerMoved"
+                        PointerExited="TimelineSlider_PointerExited"
+                        PointerCaptureLost="TimelineSlider_PointerCaptureLost"
+                        ValueChanged="TimelineSlider_ValueChanged" />
+
+                    <!-- Mark In→Out range indicator (Phase 7) — rendered on top of the timeline
+                         (declared after the Slider so the slider's track never hides it), translucent,
+                         and hit-test transparent so scrubbing still reaches the Slider. -->
+                    <Border
+                        x:Name="MarkRangeOverlay"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Center"
+                        Height="10"
+                        CornerRadius="5"
+                        Background="{ThemeResource GradientAccentPrimary}"
+                        Opacity="0.65"
+                        IsHitTestVisible="False"
+                        Visibility="Collapsed" />
+
+                    <!-- Floating Scrub / Hover Timestamp Tooltip -->
+                    <Border
+                        x:Name="ScrubTooltip"
+                        Background="{ThemeResource BrushSurfaceCard}"
+                        BorderBrush="{ThemeResource BrushAccentBlue}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="8,4"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Top"
+                        Margin="0,-44,0,0"
+                        Visibility="Collapsed"
+                        IsHitTestVisible="False">
+                        <TextBlock
+                            x:Name="ScrubTooltipText"
+                            Text="0:00 / 0:00"
+                            FontSize="11"
+                            FontWeight="SemiBold"
+                            Foreground="{ThemeResource BrushTextPrimary}" />
+                    </Border>
+
+                    <!-- Phase 7 (PS-704): Hover thumbnail preview. Shows the filmstrip cell for the
+                         scrubbed position when a strip is available; the inner Image slides within a
+                         clipped cell-sized box to show exactly one cell. -->
+                    <Border
+                        x:Name="ThumbnailPreview"
+                        Background="{ThemeResource BrushSurfaceCard}"
+                        BorderBrush="{ThemeResource BrushAccentBlue}"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Top"
+                        Margin="0,-0,0,0"
+                        Visibility="Collapsed"
+                        IsHitTestVisible="False">
+                        <Grid x:Name="ThumbnailPreviewClip">
+                            <Image
+                                x:Name="ThumbnailPreviewImage"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Stretch="Fill" />
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- Total Duration -->
+                <TextBlock
+                    x:Name="DurationText"
+                    Grid.Column="2"
+                    Text="0:00"
+                    FontSize="12"
+                    FontWeight="Medium"
+                    Foreground="{ThemeResource BrushTextMuted}"
+                    VerticalAlignment="Center"
+                    Margin="12,0,0,0" />
+
+                <!-- LIVE badge for interminable (radio/live) streams -->
+                <Border
+                    x:Name="LiveBadge"
+                    Grid.Column="2"
+                    Background="#C22A3B"
+                    CornerRadius="4"
+                    Padding="8,2"
+                    Margin="12,0,0,0"
+                    VerticalAlignment="Center"
+                    Visibility="Collapsed"
+                    IsHitTestVisible="False">
+                    <TextBlock
+                        x:Name="LiveBadgeText"
+                        Text="LIVE"
+                        FontSize="10"
+                        FontWeight="Bold"
+                        Foreground="White" />
+                </Border>
+            </Grid>
+
+            <!-- Primary Transport Buttons -->
+            <StackPanel
+                Grid.Row="1"
+                Orientation="Horizontal"
+                HorizontalAlignment="Center"
+                Spacing="12"
+                Margin="0,2,0,10">
+
+                <!-- Previous (queue) -->
+                <Button
+                    x:Name="PlayPreviousButton"
+                    Content="&#xE8BB;"
+                    FontFamily="Segoe MDL2 Assets"
+                    FontSize="18"
+                    Foreground="{ThemeResource BrushTextPrimary}"
+                    Width="44"
+                    Height="44"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    CornerRadius="22"
+                    Click="PlayPreviousButton_Click"
+                    ToolTipService.ToolTip="Previous (queue)" />
+
+                <!-- Skip Back (-10s) -->
+                <Button
+                    x:Name="SkipBackButton"
+                    Content="&#xE892;"
+                    FontFamily="Segoe MDL2 Assets"
+                    FontSize="18"
+                    Foreground="{ThemeResource BrushTextPrimary}"
+                    Width="44"
+                    Height="44"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    CornerRadius="22"
+                    Click="SkipBackButton_Click"
+                    ToolTipService.ToolTip="Skip back 10s (←)" />
+
+                <!-- Play / Pause (Hero Button) -->
+                <Button
+                    x:Name="PlayPauseButton"
+                    Content="&#xE768;"
+                    FontFamily="Segoe MDL2 Assets"
+                    FontSize="22"
+                    Foreground="White"
+                    Width="52"
+                    Height="52"
+                    Background="{ThemeResource GradientAccentPrimary}"
+                    BorderThickness="0"
+                    CornerRadius="26"
+                    Click="PlayPauseButton_Click"
+                    ToolTipService.ToolTip="Play / Pause (Space)" />
+
+                <!-- Skip Forward (+10s) -->
+                <Button
+                    x:Name="SkipForwardButton"
+                    Content="&#xE893;"
+                    FontFamily="Segoe MDL2 Assets"
+                    FontSize="18"
+                    Foreground="{ThemeResource BrushTextPrimary}"
+                    Width="44"
+                    Height="44"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    CornerRadius="22"
+                    Click="SkipForwardButton_Click"
+                    ToolTipService.ToolTip="Skip forward 10s (→)" />
+
+                <!-- Stop -->
+                <Button
+                    x:Name="StopButton"
+                    Content="&#xE71A;"
+                    FontFamily="Segoe MDL2 Assets"
+                    FontSize="16"
+                    Foreground="{ThemeResource BrushTextSecondary}"
+                    Width="44"
+                    Height="44"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    CornerRadius="22"
+                    Click="StopButton_Click"
+                    ToolTipService.ToolTip="Stop (S)" />
+
+                <!-- Next (queue) -->
+                <Button
+                    x:Name="PlayNextButton"
+                    Content="&#xE8AB;"
+                    FontFamily="Segoe MDL2 Assets"
+                    FontSize="18"
+                    Foreground="{ThemeResource BrushTextPrimary}"
+                    Width="44"
+                    Height="44"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    CornerRadius="22"
+                    Click="PlayNextButton_Click"
+                    ToolTipService.ToolTip="Next (queue)" />
+
+                <!-- Shuffle -->
+                <Button
+                    x:Name="ShuffleButton"
+                    Content="&#xE8B1;"
+                    FontFamily="Segoe MDL2 Assets"
+                    FontSize="18"
+                    Foreground="{ThemeResource BrushTextSecondary}"
+                    Width="44"
+                    Height="44"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    CornerRadius="22"
+                    Click="ShuffleButton_Click"
+                    ToolTipService.ToolTip="Shuffle (queue)" />
+
+                <!-- Repeat -->
+                <Button
+                    x:Name="RepeatButton"
+                    Content="&#xE8EE;"
+                    FontFamily="Segoe MDL2 Assets"
+                    FontSize="18"
+                    Foreground="{ThemeResource BrushTextSecondary}"
+                    Width="44"
+                    Height="44"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    CornerRadius="22"
+                    Click="RepeatButton_Click"
+                    ToolTipService.ToolTip="Repeat: Off" />
+            </StackPanel>
+
+            <!-- Bottom Row: Speed / State / Volume -->
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Left: Playback Rate Toggle Button -->
+                <Button
+                    x:Name="RateButton"
+                    Grid.Column="0"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="8,4"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Click="RateButton_Click"
+                    ToolTipService.ToolTip="Change playback speed (R)">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock
+                            Text="Speed:"
+                            FontSize="12"
+                            Foreground="{ThemeResource BrushTextMuted}"
+                            VerticalAlignment="Center" />
+                        <TextBlock
+                            x:Name="RateText"
+                            Text="1.0×"
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Foreground="{ThemeResource BrushAccentCyan}"
+                            VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+
+                <!-- Center: Engine Status Chip -->
+                <Border
+                    Grid.Column="1"
+                    Background="{ThemeResource BrushSurfaceCard}"
+                    CornerRadius="10"
+                    Padding="10,3"
+                    VerticalAlignment="Center">
+                    <TextBlock
+                        x:Name="StateText"
+                        Text="Empty"
+                        FontSize="11"
+                        FontWeight="Medium"
+                        Foreground="{ThemeResource BrushTextMuted}"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Center" />
+                </Border>
+
+                <!-- Right: Volume & Mute & Display Modes -->
+                <StackPanel
+                    Grid.Column="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Spacing="6">
+                    <Button
+                        x:Name="MuteButton"
+                        Content="&#xE767;"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="16"
+                        Foreground="{ThemeResource BrushTextPrimary}"
+                        Width="36"
+                        Height="36"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        CornerRadius="18"
+                        Click="MuteButton_Click"
+                        ToolTipService.ToolTip="Mute / Unmute (M)" />
+                    <Slider
+                        x:Name="VolumeSlider"
+                        Minimum="0"
+                        Maximum="100"
+                        Value="100"
+                        Width="100"
+                        VerticalAlignment="Center"
+                        ValueChanged="VolumeSlider_ValueChanged"
+                        ToolTipService.ToolTip="Volume (↑/↓)" />
+                    <Button
+                        x:Name="MiniPlayerButton"
+                        Content="&#xEE49;"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="16"
+                        Foreground="{ThemeResource BrushTextSecondary}"
+                        Width="36"
+                        Height="36"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        CornerRadius="18"
+                        Click="MiniPlayerButton_Click"
+                        ToolTipService.ToolTip="Mini-Player / Picture-in-Picture (P)" />
+                    <Button
+                        x:Name="CinemaButton"
+                        Content="&#xE790;"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="16"
+                        Foreground="{ThemeResource BrushTextSecondary}"
+                        Width="36"
+                        Height="36"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        CornerRadius="18"
+                        Click="CinemaButton_Click"
+                        ToolTipService.ToolTip="Cinema Mode (C)" />
+                    <Button
+                        x:Name="FullScreenButton"
+                        Content="&#xE740;"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="16"
+                        Foreground="{ThemeResource BrushTextPrimary}"
+                        Width="36"
+                        Height="36"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        CornerRadius="18"
+                        Click="FullScreenButton_Click"
+                        ToolTipService.ToolTip="Fullscreen (F / F11)" />
+                </StackPanel>
+            </Grid>
+        </Grid>
+
+        <!-- Slide-Out Side Drawer Layer (PS-207) -->
+        <Grid
+            x:Name="DrawerOverlay"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Stretch"
+            Width="360"
+            Background="#F2151A23"
+            BorderBrush="{ThemeResource BrushBorderSubtle}"
+            BorderThickness="1,0,0,0"
+            Visibility="Collapsed"
+            PointerEntered="Controls_PointerEntered"
+            PointerExited="Controls_PointerExited"
+            Canvas.ZIndex="100">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="60" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- Drawer Header -->
+            <Grid Grid.Row="0" Padding="20,0,12,0" Background="#E60F131C" BorderBrush="{ThemeResource BrushBorderSubtle}" BorderThickness="0,0,0,1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    x:Name="DrawerTitle"
+                    Text="Drawer"
+                    FontSize="16"
+                    FontWeight="SemiBold"
+                    Foreground="{ThemeResource BrushTextPrimary}"
+                    VerticalAlignment="Center" />
+                <Button
+                    x:Name="DrawerCloseButton"
+                    Grid.Column="1"
+                    Content="&#xE711;"
+                    FontFamily="Segoe MDL2 Assets"
+                    FontSize="14"
+                    Foreground="{ThemeResource BrushTextSecondary}"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="10"
+                    VerticalAlignment="Center"
+                    Click="DrawerCloseButton_Click"
+                    ToolTipService.ToolTip="Close (Esc)" />
+            </Grid>
+
+            <!-- Drawer Body -->
+            <ScrollViewer Grid.Row="1" Padding="20,16" VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="16">
+                    <!-- Audio Tracks Panel -->
+                    <StackPanel x:Name="AudioTracksPanel" Spacing="16" Visibility="Collapsed">
+                        <TextBlock Text="Select audio stream for playback:" FontSize="13" Foreground="{ThemeResource BrushTextSecondary}" />
+                        <StackPanel x:Name="AudioTracksList" Spacing="8" />
+
+                        <!-- Audio Delay / A-V Sync Section -->
+                        <Border BorderBrush="{ThemeResource BrushBorderSubtle}" BorderThickness="0,1,0,0" Margin="0,8,0,0" Padding="0,16,0,0">
+                            <StackPanel Spacing="12">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Audio Delay / A-V Sync" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource BrushTextPrimary}" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="AudioDelayValueText" Grid.Column="1" Text="0 ms" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource BrushAccentBlue}" VerticalAlignment="Center" />
+                                </Grid>
+
+                                <!-- Slider for fine tuning -->
+                                <Slider
+                                    x:Name="AudioDelaySlider"
+                                    Minimum="-5000"
+                                    Maximum="5000"
+                                    StepFrequency="50"
+                                    Value="0"
+                                    ValueChanged="AudioDelaySlider_ValueChanged"
+                                    HorizontalAlignment="Stretch" />
+
+                                <!-- Quick Step Buttons -->
+                                <Grid ColumnSpacing="6" RowSpacing="6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0" Content="-250ms" HorizontalAlignment="Stretch" Click="AudioDelayStep_Click" Tag="-250" ToolTipService.ToolTip="Advance audio by 250ms" />
+                                    <Button Grid.Column="1" Content="-50ms" HorizontalAlignment="Stretch" Click="AudioDelayStep_Click" Tag="-50" ToolTipService.ToolTip="Advance audio by 50ms (Key: J)" />
+                                    <Button Grid.Column="2" Content="+50ms" HorizontalAlignment="Stretch" Click="AudioDelayStep_Click" Tag="50" ToolTipService.ToolTip="Delay audio by 50ms (Key: K)" />
+                                    <Button Grid.Column="3" Content="+250ms" HorizontalAlignment="Stretch" Click="AudioDelayStep_Click" Tag="250" ToolTipService.ToolTip="Delay audio by 250ms" />
+                                </Grid>
+
+                                <Button
+                                    x:Name="ResetAudioDelayButton"
+                                    Content="Reset Sync (0 ms)"
+                                    HorizontalAlignment="Stretch"
+                                    Click="ResetAudioDelayButton_Click"
+                                    Background="Transparent"
+                                    BorderBrush="{ThemeResource BrushBorderSubtle}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    FontSize="12" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Output Device / Channel / Enhancements Section (Phase 3) -->
+                        <Border BorderBrush="{ThemeResource BrushBorderSubtle}" BorderThickness="0,1,0,0" Margin="0,8,0,0" Padding="0,16,0,0">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="Output Device" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource BrushTextPrimary}" />
+                                <StackPanel x:Name="AudioOutputDeviceList" Spacing="8" />
+
+                                <TextBlock Text="Channel / Downmix" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource BrushTextPrimary}" Margin="0,8,0,0" />
+                                <ComboBox
+                                    x:Name="AudioChannelComboBox"
+                                    HorizontalAlignment="Stretch"
+                                    SelectionChanged="AudioChannelComboBox_SelectionChanged">
+                                    <ComboBoxItem Content="Stereo" Tag="Stereo" />
+                                    <ComboBoxItem Content="Mono (Left channel)" Tag="MonoLeft" />
+                                    <ComboBoxItem Content="Mono (Right channel)" Tag="MonoRight" />
+                                    <ComboBoxItem Content="Reverse Stereo" Tag="ReverseStereo" />
+                                    <ComboBoxItem Content="Dolby" Tag="Dolby" />
+                                </ComboBox>
+
+                                <TextBlock Text="Enhancements (apply on next open)" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource BrushTextPrimary}" Margin="0,8,0,0" />
+                                <ToggleSwitch x:Name="LoudnessNormalizationToggle" Header="Loudness Normalization" Toggled="LoudnessNormalizationToggle_Toggled" />
+                                <ToggleSwitch x:Name="NightModeToggle" Header="Night Mode" Toggled="NightModeToggle_Toggled" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Subtitle Tracks Panel -->
+                    <StackPanel x:Name="SubtitleTracksPanel" Spacing="16" Visibility="Collapsed">
+                        <TextBlock Text="Select subtitle track:" FontSize="13" Foreground="{ThemeResource BrushTextSecondary}" />
+                        <StackPanel x:Name="SubtitleTracksList" Spacing="8" />
+                        <Button
+                            x:Name="AddSubtitleButton"
+                            HorizontalAlignment="Stretch"
+                            Margin="0,4,0,0"
+                            Padding="12,8"
+                            Background="{ThemeResource BrushSurfaceCard}"
+                            BorderBrush="{ThemeResource BrushBorderSubtle}"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Click="AddSubtitleButton_Click"
+                            ToolTipService.ToolTip="Browse and load an external subtitle file (.srt, .ass, .vtt...)">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE8B7;" FontSize="14" Foreground="{ThemeResource BrushAccentBlue}" />
+                                <TextBlock Text="Load Subtitle File..." FontSize="13" FontWeight="Medium" Foreground="{ThemeResource BrushTextPrimary}" />
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Subtitle Delay / Sync Section -->
+                        <Border BorderBrush="{ThemeResource BrushBorderSubtle}" BorderThickness="0,1,0,0" Margin="0,8,0,0" Padding="0,16,0,0">
+                            <StackPanel Spacing="12">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Subtitle Delay / Sync" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource BrushTextPrimary}" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="SubtitleDelayValueText" Grid.Column="1" Text="0 ms" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource BrushAccentBlue}" VerticalAlignment="Center" />
+                                </Grid>
+
+                                <!-- Slider for fine tuning -->
+                                <Slider
+                                    x:Name="SubtitleDelaySlider"
+                                    Minimum="-10000"
+                                    Maximum="10000"
+                                    StepFrequency="50"
+                                    Value="0"
+                                    ValueChanged="SubtitleDelaySlider_ValueChanged"
+                                    HorizontalAlignment="Stretch" />
+
+                                <!-- Quick Step Buttons -->
+                                <Grid ColumnSpacing="6" RowSpacing="6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0" Content="-250ms" HorizontalAlignment="Stretch" Click="SubtitleDelayStep_Click" Tag="-250" ToolTipService.ToolTip="Advance by 250ms" />
+                                    <Button Grid.Column="1" Content="-50ms" HorizontalAlignment="Stretch" Click="SubtitleDelayStep_Click" Tag="-50" ToolTipService.ToolTip="Advance by 50ms (Key: G)" />
+                                    <Button Grid.Column="2" Content="+50ms" HorizontalAlignment="Stretch" Click="SubtitleDelayStep_Click" Tag="50" ToolTipService.ToolTip="Delay by 50ms (Key: H)" />
+                                    <Button Grid.Column="3" Content="+250ms" HorizontalAlignment="Stretch" Click="SubtitleDelayStep_Click" Tag="250" ToolTipService.ToolTip="Delay by 250ms" />
+                                </Grid>
+
+                                <Button
+                                    x:Name="ResetSubtitleDelayButton"
+                                    Content="Reset Sync (0 ms)"
+                                    HorizontalAlignment="Stretch"
+                                    Click="ResetSubtitleDelayButton_Click"
+                                    Background="Transparent"
+                                    BorderBrush="{ThemeResource BrushBorderSubtle}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    FontSize="12" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Subtitle Style: Text Scale (Phase 3, applies on next open) -->
+                        <Border BorderBrush="{ThemeResource BrushBorderSubtle}" BorderThickness="0,1,0,0" Margin="0,8,0,0" Padding="0,16,0,0">
+                            <StackPanel Spacing="12">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Subtitle Text Size (applies on next open)" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource BrushTextPrimary}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                    <TextBlock x:Name="SubtitleTextScaleValueText" Grid.Column="1" Text="100%" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource BrushAccentBlue}" VerticalAlignment="Center" />
+                                </Grid>
+                                <Slider
+                                    x:Name="SubtitleTextScaleSlider"
+                                    Minimum="25"
+                                    Maximum="500"
+                                    StepFrequency="5"
+                                    Value="100"
+                                    ValueChanged="SubtitleTextScaleSlider_ValueChanged"
+                                    HorizontalAlignment="Stretch" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Subtitle Styling: Font / Color / Outline / Position (Phase 7, applies on next open) -->
+                        <Border BorderBrush="{ThemeResource BrushBorderSubtle}" BorderThickness="0,1,0,0" Margin="0,8,0,0" Padding="0,16,0,0">
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="Subtitle Style (applies on next open)" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource BrushTextPrimary}" />
+                                <TextBlock Text="Styling affects plain-text subtitles (SRT/WebVTT) only — ASS/DVD subtitles render their own style." FontSize="11" Foreground="{ThemeResource BrushTextMuted}" TextWrapping="Wrap" />
+
+                                <!-- Font family -->
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="Font family" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource BrushTextPrimary}" />
+                                    <ComboBox
+                                        x:Name="SubtitleFontComboBox"
+                                        IsEditable="True"
+                                        HorizontalAlignment="Stretch"
+                                        SelectionChanged="SubtitleFontComboBox_SelectionChanged" />
+                                </StackPanel>
+
+                                <!-- Text color -->
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="Text color" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource BrushTextPrimary}" />
+                                    <ComboBox
+                                        x:Name="SubtitleTextColorComboBox"
+                                        HorizontalAlignment="Stretch"
+                                        SelectionChanged="SubtitleTextColorComboBox_SelectionChanged" />
+                                </StackPanel>
+
+                                <!-- Outline color -->
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="Outline color" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource BrushTextPrimary}" />
+                                    <ComboBox
+                                        x:Name="SubtitleOutlineColorComboBox"
+                                        HorizontalAlignment="Stretch"
+                                        SelectionChanged="SubtitleOutlineColorComboBox_SelectionChanged" />
+                                </StackPanel>
+
+                                <!-- Outline thickness -->
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="Outline thickness" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource BrushTextPrimary}" />
+                                    <ComboBox
+                                        x:Name="SubtitleOutlineComboBox"
+                                        HorizontalAlignment="Stretch"
+                                        SelectionChanged="SubtitleOutlineComboBox_SelectionChanged" />
+                                </StackPanel>
+
+                                <!-- Vertical position (sub-margin) -->
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Vertical position" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource BrushTextPrimary}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                    <TextBlock x:Name="SubtitleMarginValueText" Grid.Column="1" Text="Bottom" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource BrushAccentBlue}" VerticalAlignment="Center" />
+                                </Grid>
+                                <Slider
+                                    x:Name="SubtitleMarginSlider"
+                                    Minimum="0"
+                                    Maximum="500"
+                                    StepFrequency="10"
+                                    Value="0"
+                                    ValueChanged="SubtitleMarginSlider_ValueChanged"
+                                    HorizontalAlignment="Stretch" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Cue Search / Export (Phase 3) -->
+                        <Border BorderBrush="{ThemeResource BrushBorderSubtle}" BorderThickness="0,1,0,0" Margin="0,8,0,0" Padding="0,16,0,0">
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="Cue Search &amp; Export" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource BrushTextPrimary}" />
+                                <TextBlock
+                                    x:Name="SubtitleCueSectionHint"
+                                    Text="Load an SRT or WebVTT subtitle to search its cues and export."
+                                    FontSize="12"
+                                    Foreground="{ThemeResource BrushTextMuted}"
+                                    TextWrapping="Wrap"
+                                    Visibility="Collapsed" />
+
+                                <StackPanel x:Name="SubtitleCueSearchControls" Spacing="10" Visibility="Collapsed">
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox
+                                            x:Name="SubtitleCueSearchBox"
+                                            PlaceholderText="Search subtitle text..."
+                                            TextChanged="SubtitleCueSearchBox_TextChanged" />
+                                        <Button
+                                            Grid.Column="1"
+                                            x:Name="ExportSubtitleButton"
+                                            Content="Export..."
+                                            Click="ExportSubtitleButton_Click"
+                                            ToolTipService.ToolTip="Export the loaded subtitle as SRT" />
+                                    </Grid>
+                                    <StackPanel x:Name="SubtitleCueResultsList" Spacing="4" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Playback Speed Panel -->
+                    <StackPanel x:Name="PlaybackSpeedPanel" Spacing="16" Visibility="Collapsed">
+                        <TextBlock Text="Select playback speed:" FontSize="13" Foreground="{ThemeResource BrushTextSecondary}" />
+                        <Grid ColumnSpacing="8" RowSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Button Grid.Row="0" Grid.Column="0" Content="0.5×" HorizontalAlignment="Stretch" Click="SpeedPreset_Click" Tag="0.5" />
+                            <Button Grid.Row="0" Grid.Column="1" Content="0.75×" HorizontalAlignment="Stretch" Click="SpeedPreset_Click" Tag="0.75" />
+                            <Button Grid.Row="0" Grid.Column="2" Content="1.0×" HorizontalAlignment="Stretch" Click="SpeedPreset_Click" Tag="1.0" />
+                            <Button Grid.Row="1" Grid.Column="0" Content="1.25×" HorizontalAlignment="Stretch" Click="SpeedPreset_Click" Tag="1.25" />
+                            <Button Grid.Row="1" Grid.Column="1" Content="1.5×" HorizontalAlignment="Stretch" Click="SpeedPreset_Click" Tag="1.5" />
+                            <Button Grid.Row="1" Grid.Column="2" Content="1.75×" HorizontalAlignment="Stretch" Click="SpeedPreset_Click" Tag="1.75" />
+                            <Button Grid.Row="2" Grid.Column="0" Content="2.0×" HorizontalAlignment="Stretch" Click="SpeedPreset_Click" Tag="2.0" />
+                            <Button Grid.Row="2" Grid.Column="1" Content="2.5×" HorizontalAlignment="Stretch" Click="SpeedPreset_Click" Tag="2.5" />
+                            <Button Grid.Row="2" Grid.Column="2" Content="3.0×" HorizontalAlignment="Stretch" Click="SpeedPreset_Click" Tag="3.0" />
+                        </Grid>
+                        <StackPanel Spacing="6" Margin="0,8,0,0">
+                            <TextBlock Text="Custom Speed:" FontSize="12" Foreground="{ThemeResource BrushTextMuted}" />
+                            <Slider x:Name="SpeedSlider" Minimum="0.25" Maximum="4.0" StepFrequency="0.05" ValueChanged="SpeedSlider_ValueChanged" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Media Info Panel -->
+                    <StackPanel x:Name="MediaInfoPanel" Spacing="12" Visibility="Collapsed">
+                        <Border Background="{ThemeResource BrushSurfaceCard}" CornerRadius="8" Padding="14">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="FILE DETAILS" FontSize="11" FontWeight="Bold" Foreground="{ThemeResource BrushAccentCyan}" />
+                                <TextBlock x:Name="InfoFileName" Text="File: -" FontSize="12" Foreground="{ThemeResource BrushTextPrimary}" TextWrapping="Wrap" />
+                                <TextBlock x:Name="InfoContainer" Text="Container: -" FontSize="12" Foreground="{ThemeResource BrushTextSecondary}" />
+                                <TextBlock x:Name="InfoDuration" Text="Duration: -" FontSize="12" Foreground="{ThemeResource BrushTextSecondary}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Background="{ThemeResource BrushSurfaceCard}" CornerRadius="8" Padding="14">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="VIDEO STREAM" FontSize="11" FontWeight="Bold" Foreground="{ThemeResource BrushAccentCyan}" />
+                                <TextBlock x:Name="InfoVideoDetails" Text="None" FontSize="12" Foreground="{ThemeResource BrushTextPrimary}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                        <Border Background="{ThemeResource BrushSurfaceCard}" CornerRadius="8" Padding="14">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="AUDIO STREAMS" FontSize="11" FontWeight="Bold" Foreground="{ThemeResource BrushAccentCyan}" />
+                                <TextBlock x:Name="InfoAudioDetails" Text="None" FontSize="12" Foreground="{ThemeResource BrushTextPrimary}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Chapters Panel -->
+                    <StackPanel x:Name="ChaptersPanel" Spacing="12" Visibility="Collapsed">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Bookmarks" FontSize="11" FontWeight="Bold" Foreground="{ThemeResource BrushAccentCyan}" />
+                            <TextBlock Text="No chapter markers found in current media." FontSize="13" Foreground="{ThemeResource BrushTextMuted}" />
+                            <Button
+                                x:Name="AddBookmarkButton"
+                                Content="Bookmark Current Position"
+                                HorizontalAlignment="Stretch"
+                                Click="AddBookmarkButton_Click"
+                                Background="Transparent"
+                                BorderBrush="{ThemeResource BrushBorderSubtle}"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                FontSize="12" />
+                            <StackPanel x:Name="BookmarksList" Spacing="6" />
+                        </StackPanel>
+
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="AI Chapters" FontSize="11" FontWeight="Bold" Foreground="{ThemeResource BrushAccentCyan}" />
+                            <TextBlock
+                                x:Name="ChaptersStatusText"
+                                Text="Generate chapters from this file's transcript to jump between topics."
+                                FontSize="13"
+                                Foreground="{ThemeResource BrushTextMuted}"
+                                TextWrapping="Wrap" />
+                            <Button
+                                x:Name="GenerateChaptersButton"
+                                Content="Generate AI Chapters"
+                                HorizontalAlignment="Stretch"
+                                Click="GenerateChaptersButton_Click"
+                                Background="Transparent"
+                                BorderBrush="{ThemeResource BrushBorderSubtle}"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                FontSize="12" />
+                            <StackPanel x:Name="ChaptersList" Spacing="6" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Equalizer Panel (Phase 3) -->
+                    <StackPanel x:Name="EqualizerPanel" Spacing="16" Visibility="Collapsed">
+                        <ToggleSwitch x:Name="EqualizerEnabledToggle" Header="Equalizer" Toggled="EqualizerEnabledToggle_Toggled" />
+
+                        <TextBlock Text="Preset" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource BrushTextPrimary}" />
+                        <ComboBox x:Name="EqualizerPresetComboBox" HorizontalAlignment="Stretch" SelectionChanged="EqualizerPresetComboBox_SelectionChanged" />
+
+                        <Grid Margin="0,4,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Preamp" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource BrushTextPrimary}" VerticalAlignment="Center" />
+                            <TextBlock x:Name="EqualizerPreampValueText" Grid.Column="1" Text="0.0 dB" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource BrushAccentBlue}" VerticalAlignment="Center" />
+                        </Grid>
+                        <Slider
+                            x:Name="EqualizerPreampSlider"
+                            Minimum="-20"
+                            Maximum="20"
+                            StepFrequency="0.5"
+                            Value="0"
+                            ValueChanged="EqualizerPreampSlider_ValueChanged"
+                            HorizontalAlignment="Stretch" />
+
+                        <TextBlock Text="Bands" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource BrushTextPrimary}" Margin="0,8,0,0" />
+                        <StackPanel x:Name="EqualizerBandsList" Spacing="10" />
+
+                        <Button
+                            x:Name="ResetEqualizerButton"
+                            Content="Reset to Flat"
+                            HorizontalAlignment="Stretch"
+                            Margin="0,4,0,0"
+                            Click="ResetEqualizerButton_Click"
+                            Background="Transparent"
+                            BorderBrush="{ThemeResource BrushBorderSubtle}"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            FontSize="12" />
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- Phase 7 (PS-703): Media conversion target-picker dialog. Shown via ShowAsync; the
+             selected ConversionPreset is bound through ConvertPresetList. -->
+        <ContentDialog
+            x:Name="ConvertDialog"
+            Title="Convert Media"
+            PrimaryButtonText="Next…"
+            CloseButtonText="Cancel"
+            DefaultButton="Primary">
+            <StackPanel Spacing="12" MinWidth="400">
+                <TextBlock
+                    x:Name="ConvertSourceText"
+                    TextWrapping="Wrap"
+                    FontSize="13"
+                    Foreground="{ThemeResource BrushTextSecondary}" />
+                <ListView
+                    x:Name="ConvertPresetList"
+                    MaxHeight="280"
+                    SelectionMode="Single"
+                    HorizontalAlignment="Stretch">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Spacing="2" Padding="2,6">
+                                <TextBlock
+                                    Text="{Binding DisplayName}"
+                                    FontSize="14"
+                                    FontWeight="SemiBold"
+                                    Foreground="{ThemeResource BrushTextPrimary}" />
+                                <TextBlock
+                                    Text="{Binding Description}"
+                                    FontSize="12"
+                                    Opacity="0.75"
+                                    Foreground="{ThemeResource BrushTextSecondary}"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </StackPanel>
+        </ContentDialog>
+    </Grid>
+</Page>

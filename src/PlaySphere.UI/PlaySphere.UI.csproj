@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>PlaySphere.UI</RootNamespace>
+    <UseWinUI>true</UseWinUI>
+    <WindowsPackageType>None</WindowsPackageType>
+    <EnableMsixTooling>false</EnableMsixTooling>
+    <Win2DWarnNoPlatform>false</Win2DWarnNoPlatform>
+    <Description>Shell, pages, navigation and design tokens.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Graphics.Win2D" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="LibVLCSharp.WinUI" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PlaySphere.Domain\PlaySphere.Domain.csproj" />
+    <ProjectReference Include="..\PlaySphere.Playback.Abstractions\PlaySphere.Playback.Abstractions.csproj" />
+    <ProjectReference Include="..\PlaySphere.Subtitles\PlaySphere.Subtitles.csproj" />
+    <ProjectReference Include="..\PlaySphere.Application\PlaySphere.Application.csproj" />
+  </ItemGroup>
+
+</Project>

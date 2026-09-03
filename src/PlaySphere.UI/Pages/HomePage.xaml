@@ -1,0 +1,106 @@
+<Page
+    x:Class="PlaySphere.UI.Pages.HomePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{ThemeResource BrushBackgroundPrimary}"
+    Loaded="Page_Loaded">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Padding="28" Spacing="{ThemeResource SpacingLarge}">
+
+            <Border
+                Background="{ThemeResource GradientAccentPrimary}"
+                CornerRadius="{ThemeResource CardCornerRadius}"
+                Padding="28">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Spacing="8" VerticalAlignment="Center">
+                        <TextBlock
+                            Text="Play Everything. See More. Understand Your Media."
+                            FontSize="32"
+                            FontWeight="SemiBold"
+                            Foreground="White"
+                            TextWrapping="Wrap" />
+                        <TextBlock
+                            Text="Your universal media workspace — fast, polished, private and offline-first."
+                            FontSize="16"
+                            Foreground="#E6F8FAFC"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <StackPanel
+                        Grid.Column="1"
+                        Orientation="Horizontal"
+                        Spacing="12"
+                        VerticalAlignment="Center">
+
+                        <Button
+                            x:Name="OpenUrlButton"
+                            VerticalAlignment="Center"
+                            Margin="24,0,0,0"
+                            Padding="20,12"
+                            Background="{ThemeResource BrushSurfaceCard}"
+                            Foreground="{ThemeResource BrushTextPrimary}"
+                            BorderBrush="{ThemeResource BrushBorderSubtle}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            FontWeight="SemiBold"
+                            FontSize="15"
+                            Click="OpenUrlButton_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE8CE;" FontSize="18" />
+                                <TextBlock Text="Open URL" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button
+                            x:Name="OpenFileButton"
+                            VerticalAlignment="Center"
+                            Padding="20,12"
+                            Background="#FFFFFF"
+                            Foreground="#0F172A"
+                            CornerRadius="8"
+                            FontWeight="SemiBold"
+                            FontSize="15"
+                            Click="OpenFileButton_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xED25;" FontSize="18" />
+                                <TextBlock Text="Open File" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <StackPanel Spacing="{ThemeResource SpacingSmall}">
+                <TextBlock Style="{ThemeResource SectionHeaderTextStyle}" Text="Continue Watching" />
+                <StackPanel x:Name="ContinueWatchingRow" Orientation="Horizontal" Spacing="{ThemeResource SpacingMedium}">
+                    <Border Style="{ThemeResource EmptyStateCardStyle}" Width="260">
+                        <TextBlock
+                            Style="{ThemeResource MutedTextStyle}"
+                            Text="Nothing here yet. Your in-progress media will appear here."
+                            TextWrapping="Wrap" />
+                    </Border>
+                </StackPanel>
+            </StackPanel>
+
+            <StackPanel Spacing="{ThemeResource SpacingSmall}">
+                <TextBlock Style="{ThemeResource SectionHeaderTextStyle}" Text="Recently Played" />
+                <StackPanel x:Name="RecentlyPlayedRow" Orientation="Horizontal" Spacing="{ThemeResource SpacingMedium}">
+                    <Border Style="{ThemeResource EmptyStateCardStyle}" Width="260">
+                        <TextBlock
+                            Style="{ThemeResource MutedTextStyle}"
+                            Text="Nothing played yet. Recent media will appear here."
+                            TextWrapping="Wrap" />
+                    </Border>
+                </StackPanel>
+            </StackPanel>
+
+        </StackPanel>
+    </ScrollViewer>
+
+</Page>

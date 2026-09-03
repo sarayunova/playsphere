@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>PlaySphere.Playback.LibVLC</RootNamespace>
+    <Description>libVLC-backed IMediaPlaybackEngine adapter. Owns the LibVLCSharp native lifecycle; UI never touches libVLC directly.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Compile against the bare LibVLCSharp bindings here, but do NOT copy LibVLCSharp.dll into
+      Playback.LibVLC's output. The WinUI host (PlaySphere.App) deploys the LibVLCSharp.WinUI
+      superset assembly (which contains the WinUI VideoView type) as the single runtime copy;
+      two packages shipping the same-named "LibVLCSharp.dll" would otherwise collide, and the
+      bare (no-VideoView) copy would win the filename collision and crash the UI at runtime.
+      PlaybackTests supplies its own copy for its net10.0 test host.
+    -->
+    <PackageReference Include="LibVLCSharp" ExcludeAssets="runtime" />
+    <PackageReference Include="VideoLAN.LibVLC.Windows" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="PlaySphere.PlaybackTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PlaySphere.Domain\PlaySphere.Domain.csproj" />
+    <ProjectReference Include="..\PlaySphere.Playback.Abstractions\PlaySphere.Playback.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

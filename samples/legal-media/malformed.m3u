@@ -1,0 +1,3 @@
+#EXTM3U
+/path/that/does/not/exist.mp4
+garbage # not a valid entry

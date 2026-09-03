@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>PlaySphere.Domain</RootNamespace>
+    <Description>Core domain model and value types. No references to presentations, playback or persistence.</Description>
+  </PropertyGroup>
+
+</Project>

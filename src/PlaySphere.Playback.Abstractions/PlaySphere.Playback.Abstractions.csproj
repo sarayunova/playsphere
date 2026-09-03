@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>PlaySphere.Playback.Abstractions</RootNamespace>
+    <Description>Playback engine abstraction (IMediaPlaybackEngine). UI never calls libVLC directly.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PlaySphere.Domain\PlaySphere.Domain.csproj" />
+    <!-- For IVisualizerAudioSource (an Application-layer contract); Application depends only on Domain, so this adds no cycle. -->
+    <ProjectReference Include="..\PlaySphere.Application\PlaySphere.Application.csproj" />
+  </ItemGroup>
+
+</Project>

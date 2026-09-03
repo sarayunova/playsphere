@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>PlaySphere.App</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <UseWinUI>true</UseWinUI>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <EnableMsixTooling>false</EnableMsixTooling>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <Description>LiVi PlaySphere Studio — WinUI 3 launcher (composition root).</Description>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" />
+    <PackageReference Include="LibVLCSharp.WinUI" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" />
+    <PackageReference Include="VideoLAN.LibVLC.Windows" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\app.ico" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PlaySphere.UI\PlaySphere.UI.csproj" />
+    <ProjectReference Include="..\PlaySphere.Playback.LibVLC\PlaySphere.Playback.LibVLC.csproj" />
+    <ProjectReference Include="..\PlaySphere.Infrastructure\PlaySphere.Infrastructure.csproj" />
+    <ProjectReference Include="..\PlaySphere.Library\PlaySphere.Library.csproj" />
+    <ProjectReference Include="..\PlaySphere.Media.Probe\PlaySphere.Media.Probe.csproj" />
+    <ProjectReference Include="..\PlaySphere.Media.Export\PlaySphere.Media.Export.csproj" />
+    <ProjectReference Include="..\PlaySphere.Visualizer\PlaySphere.Visualizer.csproj" />
+    <ProjectReference Include="..\PlaySphere.Audio\PlaySphere.Audio.csproj" />
+    <ProjectReference Include="..\PlaySphere.Worker\PlaySphere.Worker.csproj" />
+    <ProjectReference Include="..\PlaySphere.AI\PlaySphere.AI.csproj" />
+  </ItemGroup>
+
+</Project>

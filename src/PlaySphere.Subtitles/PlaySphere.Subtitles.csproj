@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>PlaySphere.Subtitles</RootNamespace>
+    <Description>Subtitle domain model, defensive SRT/WebVTT parsing and automatic external-subtitle file matching (PICKLE.md §17).</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PlaySphere.Domain\PlaySphere.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

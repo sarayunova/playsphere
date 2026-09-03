@@ -1,0 +1,19 @@
+<UserControl
+    x:Class="PlaySphere.UI.Controls.VideoSurfaceHost"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:lvs="using:LibVLCSharp.Platforms.Windows"
+    Background="Transparent">
+
+    <!--
+        Thin PlaySphere-owned wrapper around libVLC's WinUI VideoView (a SwapChainPanel host).
+        the page/ViewModel never references libVLC; this control is the ONE place in the view
+        layer that converses with libVLC's native video surface (via IVideoSurface's opaque
+        renderer channel). The engine pushes its MediaPlayer here with SetRenderer.
+    -->
+    <lvs:VideoView
+        x:Name="VideoView"
+        HorizontalAlignment="Stretch"
+        VerticalAlignment="Stretch"
+        Initialized="VideoView_Initialized" />
+</UserControl>

@@ -1,0 +1,77 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ============================================================
+         Color tokens — PICKLE.md §7 Vibrant Dark palette
+         ============================================================ -->
+    <Color x:Key="ColorBackgroundPrimary">#0E1117</Color>
+    <Color x:Key="ColorBackgroundSecondary">#151A23</Color>
+    <Color x:Key="ColorSurfaceCard">#1D2430</Color>
+    <Color x:Key="ColorSurfaceHover">#263142</Color>
+
+    <Color x:Key="ColorAccentBlue">#36A9FF</Color>
+    <Color x:Key="ColorAccentPurple">#8B5CF6</Color>
+    <Color x:Key="ColorAccentMagenta">#EC4899</Color>
+    <Color x:Key="ColorAccentCyan">#22D3EE</Color>
+    <Color x:Key="ColorAccentGreen">#32D583</Color>
+
+    <Color x:Key="ColorBorderSubtle">#2A3646</Color>
+
+    <Color x:Key="ColorTextPrimary">#F8FAFC</Color>
+    <Color x:Key="ColorTextSecondary">#B7C0CC</Color>
+    <Color x:Key="ColorTextMuted">#778394</Color>
+
+    <Color x:Key="ColorWarning">#F6B84A</Color>
+    <Color x:Key="ColorError">#FF5F6D</Color>
+    <Color x:Key="ColorSuccess">#35D07F</Color>
+
+    <!-- ============================================================
+         Brush tokens
+         ============================================================ -->
+    <SolidColorBrush x:Key="BrushBackgroundPrimary" Color="{StaticResource ColorBackgroundPrimary}" />
+    <SolidColorBrush x:Key="BrushBackgroundSecondary" Color="{StaticResource ColorBackgroundSecondary}" />
+    <SolidColorBrush x:Key="BrushSurfaceCard" Color="{StaticResource ColorSurfaceCard}" />
+    <SolidColorBrush x:Key="BrushSurfaceHover" Color="{StaticResource ColorSurfaceHover}" />
+
+    <SolidColorBrush x:Key="BrushAccentBlue" Color="{StaticResource ColorAccentBlue}" />
+    <SolidColorBrush x:Key="BrushAccentPurple" Color="{StaticResource ColorAccentPurple}" />
+    <SolidColorBrush x:Key="BrushAccentMagenta" Color="{StaticResource ColorAccentMagenta}" />
+    <SolidColorBrush x:Key="BrushAccentCyan" Color="{StaticResource ColorAccentCyan}" />
+    <SolidColorBrush x:Key="BrushAccentGreen" Color="{StaticResource ColorAccentGreen}" />
+
+    <SolidColorBrush x:Key="BrushTextPrimary" Color="{StaticResource ColorTextPrimary}" />
+    <SolidColorBrush x:Key="BrushTextSecondary" Color="{StaticResource ColorTextSecondary}" />
+    <SolidColorBrush x:Key="BrushTextMuted" Color="{StaticResource ColorTextMuted}" />
+
+    <SolidColorBrush x:Key="BrushBorderSubtle" Color="{StaticResource ColorBorderSubtle}" />
+
+    <SolidColorBrush x:Key="BrushWarning" Color="{StaticResource ColorWarning}" />
+    <SolidColorBrush x:Key="BrushError" Color="{StaticResource ColorError}" />
+    <SolidColorBrush x:Key="BrushSuccess" Color="{StaticResource ColorSuccess}" />
+
+    <!-- Primary accent gradient: #36A9FF → #8B5CF6 → #EC4899 (PICKLE.md §7) -->
+    <LinearGradientBrush x:Key="GradientAccentPrimary" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Offset="0.0" Color="{StaticResource ColorAccentBlue}" />
+        <GradientStop Offset="0.5" Color="{StaticResource ColorAccentPurple}" />
+        <GradientStop Offset="1.0" Color="{StaticResource ColorAccentMagenta}" />
+    </LinearGradientBrush>
+
+    <!-- Subtle page background wash -->
+    <LinearGradientBrush x:Key="GradientBackgroundWash" StartPoint="0,0" EndPoint="0.6,1">
+        <GradientStop Offset="0.0" Color="{StaticResource ColorBackgroundSecondary}" />
+        <GradientStop Offset="1.0" Color="{StaticResource ColorBackgroundPrimary}" />
+    </LinearGradientBrush>
+
+    <!-- ============================================================
+         Dimension tokens
+         ============================================================ -->
+    <CornerRadius x:Key="ControlCornerRadius">8</CornerRadius>
+    <CornerRadius x:Key="CardCornerRadius">12</CornerRadius>
+    <x:Double x:Key="SpacingExtraSmall">4</x:Double>
+    <x:Double x:Key="SpacingSmall">8</x:Double>
+    <x:Double x:Key="SpacingMedium">16</x:Double>
+    <x:Double x:Key="SpacingLarge">24</x:Double>
+    <x:Double x:Key="NavPaneWidth">220</x:Double>
+
+</ResourceDictionary>

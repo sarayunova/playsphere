@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>PlaySphere.Application</RootNamespace>
+    <Description>Application services, use cases and service contracts. Depends on PlaySphere.Domain only.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PlaySphere.Domain\PlaySphere.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

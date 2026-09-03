@@ -1,0 +1,252 @@
+<Page
+    x:Class="PlaySphere.UI.Pages.AiMediaPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Background="{ThemeResource BrushBackgroundPrimary}">
+
+    <ScrollViewer Padding="28" VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="{ThemeResource SpacingMedium}" MaxWidth="920" HorizontalAlignment="Stretch">
+
+            <StackPanel Spacing="{ThemeResource SpacingExtraSmall}">
+                <TextBlock Style="{ThemeResource PageTitleTextStyle}" Text="AI Media" />
+                <TextBlock
+                    Style="{ThemeResource SecondaryTextStyle}"
+                    Text="Transcribe a cataloged media file and jump to any spoken moment. Every AI action is strictly opt-in and uploads only the extracted audio (never the picture)."
+                    TextWrapping="Wrap" />
+            </StackPanel>
+
+            <!-- API key status -->
+            <Border
+                Style="{ThemeResource EmptyStateCardStyle}"
+                Padding="16"
+                CornerRadius="{ThemeResource CardCornerRadius}">
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Spacing="4" VerticalAlignment="Center">
+                        <TextBlock Style="{ThemeResource SectionHeaderTextStyle}" Text="OpenAI API key" />
+                        <TextBlock
+                            x:Name="ApiKeyStatusText"
+                            Style="{ThemeResource MutedTextStyle}"
+                            Text="Checking…"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Button
+                        x:Name="ApiKeyButton"
+                        Grid.Column="1"
+                        Content="Set key"
+                        Click="ApiKeyButton_Click"
+                        VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <!-- Media selection + transcribe -->
+            <Border
+                Style="{ThemeResource EmptyStateCardStyle}"
+                Padding="16"
+                CornerRadius="{ThemeResource CardCornerRadius}">
+                <StackPanel Spacing="12">
+                    <TextBlock
+                        Style="{ThemeResource SectionHeaderTextStyle}"
+                        Text="1. Pick a media file from your library"
+                        x:Name="MediaHeaderText" />
+
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox
+                            x:Name="MediaComboBox"
+                            PlaceholderText="Choose a cataloged file…"
+                            HorizontalAlignment="Stretch"
+                            SelectionChanged="MediaComboBox_SelectionChanged" />
+                        <Button
+                            x:Name="TranscribeButton"
+                            Grid.Column="1"
+                            Content="2. Transcribe"
+                            Click="TranscribeButton_Click"
+                            IsEnabled="False" />
+                    </Grid>
+
+                    <TextBlock
+                        x:Name="TranscribeStatusText"
+                        Style="{ThemeResource MutedTextStyle}"
+                        Text="Choose a file, confirm consent, and the audio will be extracted and transcribed."
+                        TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- Transcript / search -->
+            <Border
+                Style="{ThemeResource EmptyStateCardStyle}"
+                Padding="16"
+                CornerRadius="{ThemeResource CardCornerRadius}">
+                <StackPanel Spacing="12">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock
+                            Style="{ThemeResource SectionHeaderTextStyle}"
+                            Text="Transcript"
+                            VerticalAlignment="Center" />
+                        <TextBox
+                            x:Name="SearchBox"
+                            Grid.Column="1"
+                            PlaceholderText="Search the transcript (3. timestamp jump)…"
+                            TextChanged="SearchBox_TextChanged"
+                            IsEnabled="False" />
+                    </Grid>
+
+                    <TextBlock
+                        x:Name="TranscriptSummaryText"
+                        Style="{ThemeResource MutedTextStyle}"
+                        Text="No transcript yet."
+                        TextWrapping="Wrap" />
+
+                    <ItemsControl x:Name="TranscriptList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border
+                                    Style="{ThemeResource EmptyStateCardStyle}"
+                                    Margin="0,0,0,8"
+                                    Padding="12"
+                                    CornerRadius="{ThemeResource ControlCornerRadius}"
+                                    Background="{ThemeResource BrushSurfaceCard}"
+                                    Tapped="TranscriptItem_Tapped">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock
+                                            Text="{Binding Timestamp}"
+                                            FontSize="11"
+                                            FontWeight="SemiBold"
+                                            Foreground="{ThemeResource BrushAccentCyan}" />
+                                        <TextBlock
+                                            Text="{Binding Text}"
+                                            FontSize="13"
+                                            TextWrapping="Wrap"
+                                            Foreground="{ThemeResource BrushTextPrimary}" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <!-- Summary (AI-07) -->
+            <Border
+                Style="{ThemeResource EmptyStateCardStyle}"
+                Padding="16"
+                CornerRadius="{ThemeResource CardCornerRadius}">
+                <StackPanel Spacing="12">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock
+                            Style="{ThemeResource SectionHeaderTextStyle}"
+                            Text="Summary"
+                            VerticalAlignment="Center" />
+                        <Button
+                            x:Name="GenerateSummaryButton"
+                            Grid.Column="1"
+                            Content="Generate summary"
+                            Click="GenerateSummaryButton_Click"
+                            IsEnabled="False" />
+                    </Grid>
+
+                    <TextBlock
+                        x:Name="SummaryStatusText"
+                        Style="{ThemeResource MutedTextStyle}"
+                        Text="Summarize this file from its transcript (4. summary)."
+                        TextWrapping="Wrap" />
+
+                    <Border
+                        Style="{ThemeResource EmptyStateCardStyle}"
+                        Padding="12"
+                        CornerRadius="{ThemeResource ControlCornerRadius}"
+                        Background="{ThemeResource BrushSurfaceCard}"
+                        Visibility="Collapsed">
+                        <TextBlock
+                            x:Name="SummaryTextBlock"
+                            Style="{ThemeResource SecondaryTextStyle}"
+                            TextWrapping="Wrap"
+                            Foreground="{ThemeResource BrushTextPrimary}" />
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- Ask the media (AI-08) -->
+            <Border
+                Style="{ThemeResource EmptyStateCardStyle}"
+                Padding="16"
+                CornerRadius="{ThemeResource CardCornerRadius}">
+                <StackPanel Spacing="12">
+                    <TextBlock
+                        Style="{ThemeResource SectionHeaderTextStyle}"
+                        Text="Ask the media"
+                        x:Name="AskHeaderText" />
+
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox
+                            x:Name="AskBox"
+                            PlaceholderText="Ask a question about this content (e.g. \u201cWhen is the launch?\u201d)…"
+                            KeyDown="AskBox_KeyDown"
+                            IsEnabled="False" />
+                        <Button
+                            x:Name="AskButton"
+                            Grid.Column="1"
+                            Content="Ask"
+                            Click="AskButton_Click"
+                            IsEnabled="False" />
+                    </Grid>
+
+                    <TextBlock
+                        x:Name="AskStatusText"
+                        Style="{ThemeResource MutedTextStyle}"
+                        Text="Ask anything about the content. Answers with a timestamp click to jump to that moment (5. ask)."
+                        TextWrapping="Wrap" />
+
+                    <ItemsControl x:Name="AnswerList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border
+                                    Style="{ThemeResource EmptyStateCardStyle}"
+                                    Margin="0,0,0,8"
+                                    Padding="12"
+                                    CornerRadius="{ThemeResource ControlCornerRadius}"
+                                    Background="{ThemeResource BrushSurfaceCard}">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock
+                                            Text="{Binding Timestamp}"
+                                            FontSize="11"
+                                            FontWeight="SemiBold"
+                                            Foreground="{ThemeResource BrushAccentCyan}"
+                                            Visibility="{Binding TimestampVisibility}"
+                                            Tapped="AnswerItem_Tapped" />
+                                        <TextBlock
+                                            Text="{Binding Text}"
+                                            FontSize="13"
+                                            TextWrapping="Wrap"
+                                            Foreground="{ThemeResource BrushTextPrimary}" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>

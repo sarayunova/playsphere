@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <Description>Integration tests crossing real boundaries (SQLite/EF Core, filesystem) rather than pure in-memory logic.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\PlaySphere.Domain\PlaySphere.Domain.csproj" />
+    <ProjectReference Include="..\..\src\PlaySphere.Application\PlaySphere.Application.csproj" />
+    <ProjectReference Include="..\..\src\PlaySphere.Infrastructure\PlaySphere.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\PlaySphere.Library\PlaySphere.Library.csproj" />
+    <ProjectReference Include="..\..\src\PlaySphere.Media.Probe\PlaySphere.Media.Probe.csproj" />
+    <ProjectReference Include="..\..\src\PlaySphere.Media.Export\PlaySphere.Media.Export.csproj" />
+    <ProjectReference Include="..\..\src\PlaySphere.Worker\PlaySphere.Worker.csproj" />
+  </ItemGroup>
+
+</Project>

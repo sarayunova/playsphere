@@ -1,0 +1,25 @@
+<Page
+    x:Class="PlaySphere.UI.Pages.MusicPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{ThemeResource BrushBackgroundPrimary}">
+
+    <StackPanel Padding="28" Spacing="{ThemeResource SpacingMedium}">
+        <TextBlock Style="{ThemeResource PageTitleTextStyle}" Text="Music" />
+        <TextBlock
+            Style="{ThemeResource SecondaryTextStyle}"
+            Text="Your songs, albums and the classic-style visualizers."
+            TextWrapping="Wrap" />
+
+        <Border Style="{ThemeResource EmptyStateCardStyle}" Margin="0,12,0,0">
+            <StackPanel Spacing="8" VerticalAlignment="Center">
+                <TextBlock Style="{ThemeResource SectionHeaderTextStyle}" Text="No music yet" />
+                <TextBlock
+                    Style="{ThemeResource MutedTextStyle}"
+                    Text="Music library, visualizers and audio controls arrive in later phases."
+                    TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
+    </StackPanel>
+
+</Page>
