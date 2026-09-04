@@ -28,4 +28,6 @@ jobs:
       # above (catching compile errors), just isn't executed here; run it locally with real
       # hardware, or via dotnet test tests/PlaySphere.PlaybackTests.
       - name: Test (Release)
-        run: dotnet test tests/PlaySphere.UnitTests/PlaySphere.UnitTests.csproj tests/PlaySphere.IntegrationTests/PlaySphere.IntegrationTests.csproj -c Release --no-build
+        run: |
+          dotnet test tests/PlaySphere.UnitTests/PlaySphere.UnitTests.csproj -c Release --no-build
+          dotnet test tests/PlaySphere.IntegrationTests/PlaySphere.IntegrationTests.csproj -c Release --no-build
