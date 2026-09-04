@@ -26,6 +26,18 @@ public sealed class LibVlcPlaybackEngine : IMediaPlaybackEngine
     private bool _ownsLibVlc;
     private bool _disposed;
 
+    // Guards native calls that can race across threads: LoadAsync's continuation runs on
+    // whatever thread libVLC's native "Parse completed" callback fires on (ConfigureAwait(false)
+    // throughout this class means it is never marshalled to the UI thread), while a video-surface
+    // attach/rebuild is independently driven from the UI thread the moment the VideoView's swap
+    // chain initializes. Without this lock, a resume-to-last-position seek landing on the parse
+    // callback thread at the same moment as a first-attach rebuild deadlocks inside libVLC itself
+    // (Stop() and SetPosition() on the same native MediaPlayer, each blocking the other) —
+    // reproduced via a live process dump. Scoped to the two call sites proven to collide
+    // (RebuildRenderer, SeekAsync) rather than every native call, to avoid re-risking the rest of
+    // this file's already-fragile native lifecycle.
+    private readonly object _nativeCallLock = new();
+
     // Resolved path of the last successfully loaded media. Rebuilds create a fresh MediaPlayer with
     // no media, so this is re-attached on the new player or a later Play() would return false on an
     // empty player (libVLC fails via libvlc_printerr, which never reaches the Log event).
@@ -404,14 +416,18 @@ public sealed class LibVlcPlaybackEngine : IMediaPlaybackEngine
 
         // libVLC Time is in milliseconds; it is safe to set while playing or paused.
         // If the media is not yet playing, set position (0–1 float) instead.
-        if (_state is PlaybackState.Playing or PlaybackState.Paused)
+        // Locked: see _nativeCallLock — this can otherwise race a concurrent RebuildRenderer.
+        lock (_nativeCallLock)
         {
-            _mediaPlayer.Time = (long)clamped.TotalMilliseconds;
-        }
-        else if (duration > TimeSpan.Zero)
-        {
-            // Ready/Stopped — use fractional position so libVLC can honour it once play starts.
-            _mediaPlayer.Position = (float)(clamped.TotalMilliseconds / duration.TotalMilliseconds);
+            if (_state is PlaybackState.Playing or PlaybackState.Paused)
+            {
+                _mediaPlayer.Time = (long)clamped.TotalMilliseconds;
+            }
+            else if (duration > TimeSpan.Zero)
+            {
+                // Ready/Stopped — use fractional position so libVLC can honour it once play starts.
+                _mediaPlayer.Position = (float)(clamped.TotalMilliseconds / duration.TotalMilliseconds);
+            }
         }
 
         _logger.LogDebug("SeekAsync: requested {Target}ms → clamped {Clamped}ms (duration {Duration}ms).",
@@ -1024,7 +1040,19 @@ public sealed class LibVlcPlaybackEngine : IMediaPlaybackEngine
     /// volume, mute, rate) are reapplied on the next <see cref="LoadAsync"/> / command, and the
     /// visualizer PCM tap is re-registered when one is attached, so both survive the rebuild.
     /// </summary>
+    // Locked: see _nativeCallLock — a rebuild in flight here and a seek landing on libVLC's own
+    // parse-callback thread (ResolveLibrarySessionAsync's resume-to-last-position) deadlocked
+    // inside libVLC itself (Stop() vs SetPosition() on the same native player), reproduced via a
+    // live process dump.
     private void RebuildRenderer(string[]? swapChainOptions)
+    {
+        lock (_nativeCallLock)
+        {
+            RebuildRendererCore(swapChainOptions);
+        }
+    }
+
+    private void RebuildRendererCore(string[]? swapChainOptions)
     {
         swapChainOptions ??= _activeSwapChainOptions;
         _logger.LogInformation("Rebuilding libVLC renderer (swap-chain options: {Count}).",

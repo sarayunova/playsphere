@@ -55,6 +55,14 @@ public sealed partial class PlayerPage : Page
     private bool _isPopulatingDrawer;
     private bool _isPointerOverControls;
 
+    // Tracks the in-flight ViewModel.LoadAsync/LoadCollectionAsync call so AttachVideoHostAsync can
+    // wait for it (see the comment there): the VideoView's own native init fires VideoHost_Initialized
+    // independently of load progress, so without this a video-surface rebuild can start concurrently
+    // with LoadAsync's resume-to-last-position seek — both touch the same native MediaPlayer from
+    // different threads (LoadAsync's continuation runs on whatever thread libVLC's parse-callback
+    // uses) and deadlocked inside libVLC itself, reproduced via a live process dump.
+    private Task? _loadTask;
+
     private string? _lastThumbnailStripPath;
     private DispatcherTimer? _autoHideTimer;
 
@@ -212,7 +220,9 @@ public sealed partial class PlayerPage : Page
             if (resolvedEngine != null)
             {
                 ViewModel = new PlayerViewModel(resolvedEngine, libraryRepository, preferences: preferences, clipExporter: clipExporter, mediaConverter: mediaConverter, thumbnailProvider: thumbnailProvider, generateChaptersRunner: generateChaptersRunner);
-                await ViewModel.LoadAsync(filePath);
+                var loadTask = ViewModel.LoadAsync(filePath);
+                _loadTask = loadTask;
+                await loadTask;
             }
         }
         else if (e.Parameter is PlayerQueuePayload queue)
@@ -221,7 +231,9 @@ public sealed partial class PlayerPage : Page
             if (resolvedEngine != null)
             {
                 ViewModel = new PlayerViewModel(resolvedEngine, libraryRepository, preferences: preferences, clipExporter: clipExporter, mediaConverter: mediaConverter, thumbnailProvider: thumbnailProvider, generateChaptersRunner: generateChaptersRunner);
-                await ViewModel.LoadCollectionAsync(queue.FilePaths, queue.StartFilePath);
+                var loadTask = ViewModel.LoadCollectionAsync(queue.FilePaths, queue.StartFilePath);
+                _loadTask = loadTask;
+                await loadTask;
 
                 // Transcript/timestamp navigation (AI-05): jump to the requested moment best-effort.
                 if (queue.Position.HasValue)
@@ -251,6 +263,26 @@ public sealed partial class PlayerPage : Page
         }
 
         _videoSurfaceAttached = true;
+
+        // Wait for any in-flight LoadAsync/LoadCollectionAsync to finish first (see _loadTask's
+        // comment). Its continuation — including the resume-to-last-position seek — can run on
+        // whatever thread libVLC's native parse-callback uses; starting the rebuild below
+        // concurrently with that raced two native MediaPlayer calls into a libVLC-internal
+        // deadlock (Stop() vs SetPosition()), reproduced via a live process dump. Sequencing
+        // instead of locking, since the deadlock was inside libVLC's own Stop() implementation —
+        // opaque native internals a managed-only lock cannot reach.
+        if (_loadTask is { } pendingLoad)
+        {
+            try
+            {
+                await pendingLoad;
+            }
+            catch
+            {
+                // LoadAsync surfaces its own failures; don't let that skip the attach below.
+            }
+        }
+
         UpdateVideoPlaceholderUi();
 
         // The first video-surface attach in a session rebuilds libVLC's native player from
