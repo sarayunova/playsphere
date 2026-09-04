@@ -103,38 +103,47 @@ public sealed partial class HomePage : Page
             },
         };
 
-        var result = await dialog.ShowAsync();
-        if (result != ContentDialogResult.Primary)
-        {
-            return;
-        }
-
-        var url = input.Text?.Trim();
-        if (string.IsNullOrEmpty(url))
-        {
-            return;
-        }
-
         try
         {
-            var media = PlaySphere.Domain.Media.MediaFile.FromPathOrUri(url);
-            if (media.IsRemoteUri)
+            var result = await dialog.ShowAsync();
+            if (result != ContentDialogResult.Primary)
             {
-                Frame.Navigate(typeof(PlayerPage), media.FilePath);
                 return;
             }
-        }
-        catch (ArgumentException)
-        {
-            // Fall through to the generic error dialog below (invalid/unsupported scheme).
-        }
 
-        await new ContentDialog
+            var url = input.Text?.Trim();
+            if (string.IsNullOrEmpty(url))
+            {
+                return;
+            }
+
+            try
+            {
+                var media = PlaySphere.Domain.Media.MediaFile.FromPathOrUri(url);
+                if (media.IsRemoteUri)
+                {
+                    Frame.Navigate(typeof(PlayerPage), media.FilePath);
+                    return;
+                }
+            }
+            catch (ArgumentException)
+            {
+                // Fall through to the generic error dialog below (invalid/unsupported scheme).
+            }
+
+            await new ContentDialog
+            {
+                Title = "Unable to Open URL",
+                Content = "That doesn't look like a streaming URL. Paste an http(s), rtmp, rtsp, mms, udp, rtp or ftp address.",
+                CloseButtonText = "OK",
+                XamlRoot = XamlRoot,
+            }.ShowAsync();
+        }
+        catch (Exception)
         {
-            Title = "Unable to Open URL",
-            Content = "That doesn't look like a streaming URL. Paste an http(s), rtmp, rtsp, mms, udp, rtp or ftp address.",
-            CloseButtonText = "OK",
-            XamlRoot = XamlRoot,
-        }.ShowAsync();
+            // WinUI allows only one ContentDialog open per XamlRoot at a time; a second
+            // ShowAsync() while one is still closing throws and would otherwise crash this
+            // async void handler.
+        }
     }
 }

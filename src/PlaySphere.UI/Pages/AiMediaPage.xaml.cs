@@ -222,7 +222,19 @@ public sealed partial class AiMediaPage : Page
             XamlRoot = XamlRoot,
         };
 
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+        ContentDialogResult result;
+        try
+        {
+            result = await dialog.ShowAsync();
+        }
+        catch (Exception)
+        {
+            // WinUI allows only one ContentDialog open per XamlRoot at a time; a second
+            // ShowAsync() while one is still closing throws and would otherwise crash this
+            // async void handler. Treat as cancelled rather than crash.
+            return;
+        }
+        if (result != ContentDialogResult.Primary)
         {
             return;
         }
@@ -302,7 +314,16 @@ public sealed partial class AiMediaPage : Page
             XamlRoot = XamlRoot,
         };
 
-        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+        try
+        {
+            return await dialog.ShowAsync() == ContentDialogResult.Primary;
+        }
+        catch (Exception)
+        {
+            // Another ContentDialog was already open (WinUI allows only one per XamlRoot);
+            // treat as declined rather than crash.
+            return false;
+        }
     }
 
     private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -544,26 +565,35 @@ public sealed partial class AiMediaPage : Page
             XamlRoot = XamlRoot,
         };
 
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+        try
         {
-            return;
+            if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+            {
+                return;
+            }
+
+            var box = new PasswordBox { PlaceholderText = "sk-…" };
+            var setDialog = new ContentDialog
+            {
+                Title = "Set OpenAI API key",
+                Content = box,
+                PrimaryButtonText = "Save",
+                CloseButtonText = "Cancel",
+                DefaultButton = ContentDialogButton.Primary,
+                XamlRoot = XamlRoot,
+            };
+
+            if (await setDialog.ShowAsync() == ContentDialogResult.Primary)
+            {
+                _store.SetApiKey(box.Password);
+                UpdateApiKeyUi();
+            }
         }
-
-        var box = new PasswordBox { PlaceholderText = "sk-…" };
-        var setDialog = new ContentDialog
+        catch (Exception)
         {
-            Title = "Set OpenAI API key",
-            Content = box,
-            PrimaryButtonText = "Save",
-            CloseButtonText = "Cancel",
-            DefaultButton = ContentDialogButton.Primary,
-            XamlRoot = XamlRoot,
-        };
-
-        if (await setDialog.ShowAsync() == ContentDialogResult.Primary)
-        {
-            _store.SetApiKey(box.Password);
-            UpdateApiKeyUi();
+            // Another ContentDialog was already open (WinUI allows only one per XamlRoot);
+            // this call is fire-and-forget (see ConfirmProviderNeeded), so swallow rather than
+            // leave an unobserved faulted task.
         }
     }
 

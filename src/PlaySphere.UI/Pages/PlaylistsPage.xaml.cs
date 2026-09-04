@@ -275,15 +275,24 @@ public sealed partial class PlaylistsPage : Page
             Content = new TextBox { Text = _selectedPlaylist.Name, PlaceholderText = "New name" },
         };
 
-        var result = await dialog.ShowAsync();
-        if (result == ContentDialogResult.Primary && dialog.Content is TextBox box)
+        try
         {
-            var name = box.Text?.Trim();
-            if (!string.IsNullOrWhiteSpace(name))
+            var result = await dialog.ShowAsync();
+            if (result == ContentDialogResult.Primary && dialog.Content is TextBox box)
             {
-                await _repository.RenamePlaylistAsync(_selectedPlaylist.Id, name);
-                await RefreshAsync();
+                var name = box.Text?.Trim();
+                if (!string.IsNullOrWhiteSpace(name))
+                {
+                    await _repository.RenamePlaylistAsync(_selectedPlaylist.Id, name);
+                    await RefreshAsync();
+                }
             }
+        }
+        catch (Exception)
+        {
+            // WinUI allows only one ContentDialog open per XamlRoot at a time; a second
+            // ShowAsync() while one is still closing throws and would otherwise crash this
+            // async void handler.
         }
     }
 
@@ -301,13 +310,22 @@ public sealed partial class PlaylistsPage : Page
             XamlRoot = XamlRoot,
         };
 
-        var result = await dialog.ShowAsync();
-        if (result == ContentDialogResult.Primary)
+        try
         {
-            await _repository.DeletePlaylistAsync(_selectedPlaylist.Id);
-            _selectedPlaylist = null;
-            ClearDetail();
-            await RefreshAsync();
+            var result = await dialog.ShowAsync();
+            if (result == ContentDialogResult.Primary)
+            {
+                await _repository.DeletePlaylistAsync(_selectedPlaylist.Id);
+                _selectedPlaylist = null;
+                ClearDetail();
+                await RefreshAsync();
+            }
+        }
+        catch (Exception)
+        {
+            // WinUI allows only one ContentDialog open per XamlRoot at a time; a second
+            // ShowAsync() while one is still closing throws and would otherwise crash this
+            // async void handler.
         }
     }
 
