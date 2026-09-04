@@ -1457,17 +1457,32 @@ public sealed partial class PlayerPage : Page
         }
     }
 
-    private async Task ShowSnapshotResultDialogAsync(string message)
+    private Task ShowSnapshotResultDialogAsync(string message) => ShowInfoDialogAsync("Save Snapshot", message);
+
+    /// <summary>
+    /// Shows a simple OK-dismiss informational dialog. WinUI allows only one ContentDialog open
+    /// per XamlRoot at a time; showing a second one throws (this crashed the app when a result
+    /// dialog was triggered while another was still closing — see AGENTS.md). Losing one
+    /// informational message to a rare race is far better than an unhandled crash, so the show
+    /// is best-effort.
+    /// </summary>
+    private async Task ShowInfoDialogAsync(string title, string message)
     {
         if (XamlRoot is null) return;
         var dialog = new ContentDialog
         {
-            Title = "Save Snapshot",
+            Title = title,
             Content = message,
             CloseButtonText = "OK",
             XamlRoot = XamlRoot
         };
-        await dialog.ShowAsync();
+        try
+        {
+            await dialog.ShowAsync();
+        }
+        catch (Exception)
+        {
+        }
     }
 
     // ── Phase 7: Mark In / Out + clip export ─────────────────────────────────
@@ -1522,18 +1537,7 @@ public sealed partial class PlayerPage : Page
         }
     }
 
-    private async Task ShowClipExportResultDialogAsync(string message)
-    {
-        if (XamlRoot is null) return;
-        var dialog = new ContentDialog
-        {
-            Title = "Export Clip",
-            Content = message,
-            CloseButtonText = "OK",
-            XamlRoot = XamlRoot
-        };
-        await dialog.ShowAsync();
-    }
+    private Task ShowClipExportResultDialogAsync(string message) => ShowInfoDialogAsync("Export Clip", message);
 
     /// <summary>Derives a safe suggested clip file stem from the loaded media title.</summary>
     private string SuggestClipFileName()
@@ -1642,7 +1646,17 @@ public sealed partial class PlayerPage : Page
         ConvertSourceText.Text = $"Convert “{title}” to:";
 
         ConvertDialog.XamlRoot = XamlRoot;
-        var dialogResult = await ConvertDialog.ShowAsync();
+        ContentDialogResult dialogResult;
+        try
+        {
+            dialogResult = await ConvertDialog.ShowAsync();
+        }
+        catch (Exception)
+        {
+            // Another ContentDialog was already open (WinUI allows only one per XamlRoot); treat
+            // as cancelled rather than crash — see ShowInfoDialogAsync's note.
+            return;
+        }
         if (dialogResult != ContentDialogResult.Primary) return;
         if (ConvertPresetList.SelectedItem is not PlaySphere.Domain.Media.ConversionPreset preset) return;
 
@@ -1677,18 +1691,7 @@ public sealed partial class PlayerPage : Page
         }
     }
 
-    private async Task ShowConversionResultDialogAsync(string message)
-    {
-        if (XamlRoot is null) return;
-        var dialog = new ContentDialog
-        {
-            Title = "Convert Media",
-            Content = message,
-            CloseButtonText = "OK",
-            XamlRoot = XamlRoot
-        };
-        await dialog.ShowAsync();
-    }
+    private Task ShowConversionResultDialogAsync(string message) => ShowInfoDialogAsync("Convert Media", message);
 
     /// <summary>Derives a safe, preset-suffixed suggested convert file stem from the media title.</summary>
     private string SuggestConvertFileName(PlaySphere.Domain.Media.ConversionPreset preset)
@@ -1863,7 +1866,16 @@ public sealed partial class PlayerPage : Page
             XamlRoot = root,
         };
 
-        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+        try
+        {
+            return await dialog.ShowAsync() == ContentDialogResult.Primary;
+        }
+        catch (Exception)
+        {
+            // Another ContentDialog was already open (WinUI allows only one per XamlRoot); treat
+            // as declined rather than crash — see the ShowInfoDialogAsync note above.
+            return false;
+        }
     }
 
     private void DrawerCloseButton_Click(object sender, RoutedEventArgs e)
