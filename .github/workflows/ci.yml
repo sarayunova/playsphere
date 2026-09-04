@@ -22,5 +22,10 @@ jobs:
       - name: Build (Release)
         run: dotnet build -c Release --no-restore
 
+      # PlaySphere.PlaybackTests exercises the real libVLC engine (actual video/audio output),
+      # which GitHub-hosted Windows runners have no hardware for — AGENTS.md documents its
+      # failure membership as varying run-to-run in headless environments. It still builds
+      # above (catching compile errors), just isn't executed here; run it locally with real
+      # hardware, or via dotnet test tests/PlaySphere.PlaybackTests.
       - name: Test (Release)
-        run: dotnet test -c Release --no-build
+        run: dotnet test tests/PlaySphere.UnitTests/PlaySphere.UnitTests.csproj tests/PlaySphere.IntegrationTests/PlaySphere.IntegrationTests.csproj -c Release --no-build
