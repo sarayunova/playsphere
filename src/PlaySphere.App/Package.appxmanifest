@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  MSIX package manifest (Phase 10 / ADR-0010). Single-project MSIX tooling substitutes
+  $targetnametoken$/$targetentrypoint$ with the real app executable/entry point at package time —
+  do not replace them by hand.
+-->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap rescap">
+
+  <Identity
+    Name="LiViSoftwareCompany.PlaySphereStudio"
+    Publisher="CN=sarayunova"
+    Version="0.10.0.0" />
+
+  <Properties>
+    <DisplayName>LiVi PlaySphere Studio</DisplayName>
+    <PublisherDisplayName>LiVi Software Company</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.19041.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="$targetentrypoint$">
+      <uap:VisualElements
+        DisplayName="LiVi PlaySphere Studio"
+        Description="LiVi PlaySphere Studio — WinUI 3 launcher (composition root)."
+        BackgroundColor="#0E1117"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" />
+        <uap:SplashScreen Image="Assets\SplashScreen.png" />
+      </uap:VisualElements>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <!-- Unpackaged-style full Win32 access: native libVLC P/Invoke, ffmpeg/ffprobe subprocess
+         launches (PICKLE.md §29's structured-argument process invocation). -->
+    <rescap:Capability Name="runFullTrust" />
+    <!-- Opt-in AI features (PlaySphere.AI) call the OpenAI API; nothing else in this offline-first
+         app makes network calls. -->
+    <Capability Name="internetClient" />
+  </Capabilities>
+</Package>

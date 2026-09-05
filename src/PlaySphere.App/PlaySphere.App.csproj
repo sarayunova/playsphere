@@ -7,12 +7,15 @@
     <RootNamespace>PlaySphere.App</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <UseWinUI>true</UseWinUI>
-    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsPackageType>MSIX</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
-    <EnableMsixTooling>false</EnableMsixTooling>
+    <EnableMsixTooling>true</EnableMsixTooling>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <Description>LiVi PlaySphere Studio — WinUI 3 launcher (composition root).</Description>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <!-- Phase 10 (ADR-0010): single source of truth for the app version. Keep this and
+         Package.appxmanifest's Identity/Version (4-part numeric) in sync by hand. -->
+    <Version>0.10.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

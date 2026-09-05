@@ -1,0 +1,102 @@
+# ADR-0010 — MSIX packaging via single-project tooling
+
+Status: **Accepted** (Phase 10 — Release Engineering, supersedes ADR-0001's deferral).
+Date: 2026-09-04.
+
+## Context
+
+ADR-0001 deliberately shipped Phases 0–9 **unpackaged** (`WindowsPackageType=None`,
+`WindowsAppSDKSelfContained=true`) and explicitly deferred "MSIX packaging, code signing and
+installer engineering" to Phase 10. That phase is now starting. PICKLE.md §52 Phase 10 scope is:
+MSIX, signing, clean-machine install, an update mechanism, crash diagnostics, a dependency
+license audit, an SBOM and privacy documentation.
+
+Per AGENTS.md rule 9, changing the packaging mechanism requires an ADR — this is that record.
+
+## Decision
+
+**Package via single-project MSIX tooling** (`EnableMsixTooling=true` + `WindowsPackageType=MSIX`
+directly in `src/PlaySphere.App/PlaySphere.App.csproj`), not a separate `.wapproj` packaging
+project.
+
+- The app csproj already has an explicit `EnableMsixTooling=false` from Phase 0 — strong evidence
+  this exact single-project path was anticipated rather than a `.wapproj`.
+- The repository already has 18 projects and one maintainer; a second packaging project would mean
+  a duplicate reference graph and build configuration to keep in sync for no architectural benefit
+  here (no multi-architecture or multi-package-profile need — the app targets `win-x64` only).
+- Single-project MSIX has been supported since WinAppSDK 1.2+ and is the current Microsoft-
+  recommended default for new packaged WinUI 3 apps.
+
+**Package identity:** `Identity Name="LiViSoftwareCompany.PlaySphereStudio"
+Publisher="CN=sarayunova"`, `DisplayName="LiVi PlaySphere Studio"`,
+`PublisherDisplayName="LiVi Software Company"`. The `Publisher` CN is tied to whatever
+certificate signs the package and is effectively permanent for update continuity once real
+installs exist — chosen deliberately, not a placeholder.
+
+**Signing (this phase):** a self-signed development certificate (`CN=sarayunova`, code-signing
+EKU), used for local sideload testing only. It will not pass SmartScreen or Store submission and
+requires manually trusting the certificate on a test machine. A real signing strategy (a paid CA
+certificate, Azure Trusted Signing, or Microsoft Store signing) is an **explicit open decision**
+left for a later phase — see "Consequences" below. This ADR does not pick one.
+
+**Update mechanism:** MSIX App Installer (`.appinstaller`), pointed at this repository's GitHub
+Releases. Chosen over the Microsoft Store because no Store developer account is confirmed to
+exist for this project; App Installer needs only a stable download URL, which GitHub Releases
+already provides.
+
+**Data location:** the on-disk per-user data folder stays `%LOCALAPPDATA%\LiVi PlaySphere
+Studio\` unchanged. Packaged (non-Store-sandboxed, `runFullTrust`) MSIX apps still get normal
+`Environment.SpecialFolder.LocalApplicationData` access — `App.xaml.cs`'s existing path logic
+needs no code change. This is asserted here and **verified for real** by the manual clean-machine
+install checklist (`docs/testing/clean-machine-install-checklist.md`), not merely assumed.
+
+**Icons:** the full MSIX tile asset set (Square44x44Logo + target-size variants,
+Square150x150Logo, Square71x71Logo, Square310x310Logo, Wide310x150Logo, StoreLogo,
+SplashScreen) does not exist yet — only a single `app.ico`. This phase generates a
+programmatic placeholder set from `app.ico` (`tools/generate-msix-assets.ps1`) so packaging is
+unblocked now; a real designed icon set is a follow-up, not a blocker for this ADR.
+
+## Consequences
+
+- `PlaySphere.App.csproj` gains `WindowsPackageType=MSIX`, `EnableMsixTooling=true`, and a
+  `Version` property (no version existed anywhere before this phase except `app.manifest`'s
+  hardcoded `1.0.0.0`).
+- A new `Package.appxmanifest` is added to `src/PlaySphere.App`.
+- Building an installable package now requires a certificate; CI's existing push/PR workflow
+  (`ci.yml`) is unaffected (it only restores/builds/tests, never packages), while a new
+  tag-triggered `release.yml` packages and signs with a throwaway self-signed cert until a real
+  signing strategy is chosen.
+- Three items are explicitly **not** resolved by this ADR and are tracked as open follow-ups:
+  1. Real code-signing certificate strategy (paid CA vs. Azure Trusted Signing vs. Store).
+  2. Whether to also pursue Microsoft Store distribution alongside/instead of App Installer.
+  3. Replacing the placeholder icon set with real designed artwork.
+- The clean-machine install/uninstall verification required by PICKLE.md §53 cannot be executed
+  in this development environment (no second machine or VM available here) and must be run by a
+  human on real hardware — see `docs/testing/clean-machine-install-checklist.md`.
+
+## Alternatives considered
+
+- **`.wapproj` packaging project**: the traditional approach, rejected here given the repo's
+  existing project count and single-maintainer context — no benefit over single-project MSIX for
+  a single-RID, single-architecture app.
+- **Microsoft Store distribution now**: rejected for this phase — no confirmed Store developer
+  account, and Store review/certification is a larger process than this phase needs to unblock
+  local sideload testing and GitHub-based distribution.
+- **Real code-signing certificate now**: rejected for this phase — purchasing a certificate or
+  enrolling in Azure Trusted Signing is a cost/identity decision for the project owner, not
+  something to default into silently. Self-signed unblocks all the mechanical packaging work
+  without pre-empting that decision.
+
+## Verification
+
+- `dotnet build -c Release` still succeeds after the csproj/manifest changes.
+- `dotnet publish src/PlaySphere.App -c Release -r win-x64 /p:WindowsPackageType=MSIX` produces
+  an unsigned `.msix` under `AppPackages/`.
+- After the dev certificate is created (`tools/create-dev-signing-cert.ps1`), the packaged
+  `.msix` can be signed and `signtool verify /pa` shows the dev certificate (untrusted chain is
+  expected and correct until a tester manually trusts it — see
+  `docs/security/code-signing.md`).
+- Full solution test suite (`dotnet test`) remains green — packaging is additive and does not
+  change any runtime code path exercised by tests.
+- Manual clean-machine install/uninstall pass per `docs/testing/clean-machine-install-checklist.md`
+  is required before this phase can be considered fully closed, and must be performed by a human.

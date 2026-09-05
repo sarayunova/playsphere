@@ -21,3 +21,8 @@ Desktop.ini
 # Logs
 *.log
 logs/
+
+# Code-signing artifacts (Phase 10 / ADR-0010) - never commit certs or keys
+*.pfx
+*.cer
+*.p12
