@@ -12,7 +12,10 @@ publishing it as the app's official privacy policy should get a legal/product re
 PlaySphere is offline-first. With AI features untouched, nothing it does reaches the network.
 Everything it stores lives under `%LOCALAPPDATA%\LiVi PlaySphere Studio\` on the local machine:
 preferences (`preferences.json`), the media library database, thumbnail/waveform caches, and
-diagnostic logs (e.g. `visualizer-audio.log`). None of this is transmitted anywhere by the app.
+diagnostic logs (`visualizer-audio.log`, `libvlc.log`, and `crash.log` - see
+[crash-diagnostics.md](crash-diagnostics.md)). None of this is transmitted anywhere by the app -
+if you ever need to share `crash.log` with someone to diagnose a bug, that's a manual, deliberate
+action you take, not something the app does on your behalf.
 
 There is no telemetry, analytics, or crash-reporting SDK anywhere in the codebase - confirmed by
 searching all source projects, not just asserted.

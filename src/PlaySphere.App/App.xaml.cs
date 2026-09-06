@@ -28,6 +28,12 @@ public partial class App : Microsoft.UI.Xaml.Application
     {
         InitializeComponent();
         UnhandledException += App_UnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += (_, e) => LogCrash(e.ExceptionObject as Exception, "AppDomain");
+        TaskScheduler.UnobservedTaskException += (_, e) =>
+        {
+            LogCrash(e.Exception, "UnobservedTask");
+            e.SetObserved();
+        };
 
         // Unpackaged app (ADR-0001): use the classic per-user AppData path, not
         // Windows.Storage.ApplicationData, which requires package identity.
@@ -63,24 +69,64 @@ public partial class App : Microsoft.UI.Xaml.Application
 
     private void App_UnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
     {
-        LogCrash(e.Exception);
+        LogCrash(e.Exception, "XamlUI");
     }
 
-    private static void LogCrash(Exception exception)
+    /// <summary>
+    /// Crash diagnostics (Phase 10, PICKLE.md §52): a local-only, append-only log at
+    /// <c>%LOCALAPPDATA%\LiVi PlaySphere Studio\crash.log</c> - never transmitted anywhere,
+    /// consistent with this app having no telemetry (see docs/security/privacy.md). Covers all
+    /// three places .NET surfaces an otherwise-unlogged unhandled exception: the XAML UI thread
+    /// (<see cref="UnhandledException"/>), any other thread (<see cref="AppDomain.UnhandledException"/> -
+    /// previously uncovered here, meaning a background-thread crash left zero trace), and
+    /// unobserved Task exceptions (diagnostic only; these don't crash the process).
+    /// </summary>
+    private static void LogCrash(Exception? exception, string source)
     {
+        if (exception is null)
+        {
+            return;
+        }
+
         try
         {
             var dir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "LiVi PlaySphere Studio");
             Directory.CreateDirectory(dir);
+            var logPath = Path.Combine(dir, "crash.log");
+
+            // Cap unbounded growth from a repeated crash loop: keep one rotated copy.
+            const long maxBytes = 5 * 1024 * 1024;
+            if (File.Exists(logPath) && new FileInfo(logPath).Length > maxBytes)
+            {
+                File.Copy(logPath, Path.Combine(dir, "crash.log.old"), overwrite: true);
+                File.Delete(logPath);
+            }
+
+            var appVersion = GetAppVersion();
             File.AppendAllText(
-                Path.Combine(dir, "crash.log"),
-                $"[{DateTime.UtcNow:o}] {exception}\n");
+                logPath,
+                $"[{DateTime.UtcNow:o}] source={source} appVersion={appVersion} os={Environment.OSVersion.VersionString}\n{exception}\n\n");
         }
         catch
         {
             // Logging failures must never take the app down.
+        }
+    }
+
+    private static string GetAppVersion()
+    {
+        try
+        {
+            var packageVersion = Windows.ApplicationModel.Package.Current.Id.Version;
+            return $"{packageVersion.Major}.{packageVersion.Minor}.{packageVersion.Build}.{packageVersion.Revision}";
+        }
+        catch
+        {
+            // Package.Current requires MSIX package identity - throws when running unpackaged
+            // (e.g. `dotnet run` in dev). Fall back to the assembly version.
+            return System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown";
         }
     }
 
