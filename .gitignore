@@ -26,3 +26,6 @@ logs/
 *.pfx
 *.cer
 *.p12
+
+# release.yml's staging folder if run locally
+release-assets/

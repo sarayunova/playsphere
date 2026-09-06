@@ -48,4 +48,7 @@ choosing and setting up one of those options first.
 
 `tools/build-release.ps1` has an optional signing step that locates the local `.pfx` (see the
 script for exact parameters) and signs the packaged `.msix` via `signtool sign`. It is skippable
-with `-SkipSign`, which CI uses by default since no certificate exists in that environment.
+with `-SkipSign`. `ci.yml` never packages at all (build/test only), so this doesn't apply there;
+`.github/workflows/release.yml` does package and sign, generating its own throwaway certificate
+fresh on each run via `tools/create-dev-signing-cert.ps1` - see `docs/release/update-mechanism.md`
+for what that means for users (re-trusting the certificate on every release, for now).

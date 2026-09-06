@@ -1,0 +1,85 @@
+name: Release
+
+# Phase 10 / ADR-0010: packages and publishes a signed MSIX to GitHub Releases whenever a
+# vX.Y.Z tag is pushed, plus an .appinstaller so users get in-app updates without a Store account.
+# Signs with a throwaway self-signed dev certificate (see docs/security/code-signing.md) - a real
+# signing strategy (paid CA / Azure Trusted Signing / Store) is an explicit open decision the ADR
+# does not make. Each run's certificate is new, so users must re-trust it on every release until
+# a real strategy is chosen; this is a known, accepted limitation of this phase, not a bug.
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Package, sign, and publish
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Verify tag matches PlaySphere.App.csproj Version
+        shell: pwsh
+        run: |
+          $tagVersion = "${{ github.ref_name }}" -replace '^v', ''
+          $csprojContent = Get-Content 'src/PlaySphere.App/PlaySphere.App.csproj' -Raw
+          if ($csprojContent -notmatch '<Version>([\d.]+)</Version>') {
+            throw "Could not find <Version> in PlaySphere.App.csproj"
+          }
+          $csprojVersion = $Matches[1]
+          if ($tagVersion -ne $csprojVersion) {
+            throw "Tag v$tagVersion does not match PlaySphere.App.csproj Version $csprojVersion - bump the version (csproj and Package.appxmanifest) before tagging."
+          }
+          Write-Host "Tag matches csproj Version: $csprojVersion"
+
+      - name: Create throwaway signing certificate
+        shell: pwsh
+        run: tools/create-dev-signing-cert.ps1
+
+      - name: Build, package, and sign MSIX
+        shell: pwsh
+        run: tools/build-release.ps1 -SkipTests -Package
+
+      - name: Generate .appinstaller and stage release assets
+        shell: pwsh
+        run: |
+          $packageDir = 'src/PlaySphere.App/bin/Release/AppPackages'
+          $msix = Get-ChildItem -Path $packageDir -Filter '*.msix' -Recurse | Select-Object -First 1
+          if (-not $msix) { throw "No .msix found under $packageDir" }
+
+          $tag = "${{ github.ref_name }}"
+          $repo = "${{ github.repository }}"
+          $msixUri = "https://github.com/$repo/releases/download/$tag/$($msix.Name)"
+          $appInstallerUri = "https://github.com/$repo/releases/download/$tag/PlaySphere.App.appinstaller"
+
+          $assetsDir = 'release-assets'
+          New-Item -ItemType Directory -Path $assetsDir -Force | Out-Null
+          Copy-Item $msix.FullName -Destination $assetsDir
+          Copy-Item (Join-Path $msix.DirectoryName 'dev-signing-cert.cer') -Destination (Join-Path $assetsDir 'PlaySphere.App.cer')
+
+          tools/generate-appinstaller.ps1 `
+            -MsixUri $msixUri `
+            -AppInstallerUri $appInstallerUri `
+            -OutputPath (Join-Path $assetsDir 'PlaySphere.App.appinstaller')
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # PowerShell does not glob-expand wildcards for external commands (unlike bash) - resolve
+          # the asset paths ourselves and splat them as explicit arguments to gh.
+          $assets = Get-ChildItem -Path 'release-assets' -File | Select-Object -ExpandProperty FullName
+          gh release create "${{ github.ref_name }}" @assets `
+            --title "${{ github.ref_name }}" `
+            --generate-notes `
+            --notes "**Unsigned by a trusted CA** - this package is signed with a throwaway self-signed development certificate (see docs/security/code-signing.md). Download PlaySphere.App.cer and trust it (``Import-Certificate -CertStoreLocation Cert:\LocalMachine\TrustedPeople``) before installing or updating, or Windows will refuse the package with error 0x800B010A."
