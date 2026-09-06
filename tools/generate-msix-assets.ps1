@@ -1,11 +1,12 @@
 <#
 .SYNOPSIS
-    Generates the MSIX tile/logo asset set (Phase 10 / ADR-0010) from the existing app.ico.
+    Generates the MSIX tile/logo asset set (Phase 10 / ADR-0010) from a source icon image.
 
 .DESCRIPTION
-    PLACEHOLDER ASSETS - generated from src/PlaySphere.App/Assets/app.ico by simple resampling.
-    Replace with real designed artwork before any public release; this script exists only to
-    unblock MSIX packaging without waiting on a graphic-design pass (see ADR-0010).
+    Resamples a single square master image (PNG/JPEG/BMP, or a legacy .ico) down into the full
+    MSIX tile/logo set. Defaults to src/PlaySphere.App/Assets/icon-source.png - the real designed
+    artwork that replaced this phase's original app.ico-derived placeholder set (see ADR-0010's
+    "Consequences" - this was one of its explicit open follow-ups).
 
     Requires PowerShell on Windows (uses System.Drawing, part of the .NET runtime already
     required to build this repo).
@@ -20,12 +21,13 @@ $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Drawing
 
 $scriptRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
-if (-not $IconPath) { $IconPath = Join-Path $scriptRoot "..\src\PlaySphere.App\Assets\app.ico" }
+if (-not $IconPath) { $IconPath = Join-Path $scriptRoot "..\src\PlaySphere.App\Assets\icon-source.png" }
 if (-not $OutputDir) { $OutputDir = Join-Path $scriptRoot "..\src\PlaySphere.App\Assets" }
 
 # System.Drawing.Icon's legacy GDI+ parser throws on the PNG-compressed large frames modern .ico
-# files embed (this app.ico has 16x16/24x24+ PNG-format entries per its file signature), so parse
-# the ICO directory ourselves and pull out the largest frame's raw image bytes directly.
+# files embed, so .ico sources are parsed by hand to pull out the largest frame's raw image bytes
+# directly. Any other raster format (PNG/JPEG/BMP) loads directly via Bitmap.FromFile - GDI+
+# detects the real format from the file's contents, not its extension.
 function Get-LargestIconFrameBytes {
     param([string]$Path)
     $bytes = [System.IO.File]::ReadAllBytes($Path)
@@ -54,10 +56,16 @@ if (-not (Test-Path $IconPath)) {
 $IconPath = (Resolve-Path $IconPath).Path
 $OutputDir = (Resolve-Path $OutputDir).Path
 
-$frameBytes = Get-LargestIconFrameBytes -Path $IconPath
-$frameStream = New-Object System.IO.MemoryStream(,$frameBytes)
-$sourceBitmap = [System.Drawing.Bitmap]::FromStream($frameStream)
-Write-Output "Extracted largest icon frame: $($sourceBitmap.Width) x $($sourceBitmap.Height)"
+if ([System.IO.Path]::GetExtension($IconPath) -eq '.ico') {
+    $frameBytes = Get-LargestIconFrameBytes -Path $IconPath
+    $frameStream = New-Object System.IO.MemoryStream(,$frameBytes)
+    $sourceBitmap = [System.Drawing.Bitmap]::FromStream($frameStream)
+}
+else {
+    $sourceBitmap = [System.Drawing.Bitmap]::FromFile($IconPath)
+    $frameStream = $null
+}
+Write-Output "Loaded source image: $($sourceBitmap.Width) x $($sourceBitmap.Height)"
 
 function New-ResizedPng {
     param(
@@ -73,10 +81,18 @@ function New-ResizedPng {
         $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
         $graphics.Clear([System.Drawing.Color]::Transparent)
 
+        # Fit the (square) source into the largest centered square that fits the padded canvas,
+        # rather than stretching it to fill Width x Height directly - for non-square canvases
+        # (Wide310x150Logo, SplashScreen) that would squash a square source into an oval/distorted
+        # shape. The canvas stays transparent outside that square so the tile's manifest-declared
+        # BackgroundColor shows through, matching how Windows tile logos are meant to work.
         $inset = [int]([Math]::Min($Width, $Height) * $PaddingPercent / 100.0)
-        $destWidth = $Width - (2 * $inset)
-        $destHeight = $Height - (2 * $inset)
-        $graphics.DrawImage($sourceBitmap, $inset, $inset, $destWidth, $destHeight)
+        $availableWidth = $Width - (2 * $inset)
+        $availableHeight = $Height - (2 * $inset)
+        $destSize = [Math]::Min($availableWidth, $availableHeight)
+        $destX = $inset + [int](($availableWidth - $destSize) / 2)
+        $destY = $inset + [int](($availableHeight - $destSize) / 2)
+        $graphics.DrawImage($sourceBitmap, $destX, $destY, $destSize, $destSize)
     }
     finally {
         $graphics.Dispose()
@@ -103,8 +119,7 @@ New-ResizedPng -FileName "StoreLogo.png"                          -Width 50  -He
 New-ResizedPng -FileName "SplashScreen.png"                       -Width 620 -Height 300 -PaddingPercent 20
 
 $sourceBitmap.Dispose()
-$frameStream.Dispose()
+if ($frameStream) { $frameStream.Dispose() }
 
 Write-Output ""
-Write-Output "Done. These are PLACEHOLDER assets resampled from app.ico - replace with real"
-Write-Output "designed artwork before any public release (see ADR-0010)."
+Write-Output "Done. Resampled from: $IconPath"
