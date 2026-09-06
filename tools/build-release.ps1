@@ -6,6 +6,7 @@ param(
     [switch]$Package,
     [switch]$SkipSign,
     [string]$PfxPath = (Join-Path $PSScriptRoot 'dev-signing-cert.pfx'),
+    [string]$CerPath = (Join-Path $PSScriptRoot 'dev-signing-cert.cer'),
     [System.Security.SecureString]$PfxPassword
 )
 
@@ -32,9 +33,21 @@ if ($Package) {
     Write-Host '== Packaging MSIX ==' -ForegroundColor Cyan
     $appProject = Join-Path $PSScriptRoot '..\src\PlaySphere.App\PlaySphere.App.csproj'
     $packageDir = Join-Path $PSScriptRoot '..\src\PlaySphere.App\bin\Release\AppPackages\'
-    & dotnet publish $appProject -c Release -r win-x64 `
-        -p:WindowsPackageType=MSIX -p:GenerateAppxPackageOnBuild=true -p:AppxPackageDir=$packageDir
-    if ($LASTEXITCODE -ne 0) { throw "MSIX packaging failed (exit $LASTEXITCODE)." }
+
+    # The MSIX packaging target deletes and recreates its localized Add-AppDevPackage.resources
+    # output on every run. Real-time antivirus scanning of the freshly-written .psd1 resource
+    # files can hold a sub-second lock on the first one (alphabetically cs-CZ) at exactly the
+    # moment the target tries to remove it, failing with MSB3231 "Access is denied". This is a
+    # known transient OS-level race, not a build correctness issue - retry a few times.
+    $maxAttempts = 3
+    for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+        & dotnet publish $appProject -c Release -r win-x64 `
+            -p:WindowsPackageType=MSIX -p:GenerateAppxPackageOnBuild=true -p:AppxPackageDir=$packageDir
+        if ($LASTEXITCODE -eq 0) { break }
+        if ($attempt -eq $maxAttempts) { throw "MSIX packaging failed after $maxAttempts attempts (exit $LASTEXITCODE)." }
+        Write-Warning "MSIX packaging failed (exit $LASTEXITCODE), attempt $attempt/$maxAttempts - retrying (likely a transient antivirus file lock)."
+        Start-Sleep -Seconds 3
+    }
 
     $msix = Get-ChildItem -Path $packageDir -Filter '*.msix' -Recurse | Select-Object -First 1
     if (-not $msix) { throw "No .msix produced under $packageDir" }
@@ -69,6 +82,16 @@ if ($Package) {
         if ($LASTEXITCODE -ne 0) { throw "signtool sign failed (exit $LASTEXITCODE)." }
         Write-Host "Signed: $($msix.FullName)" -ForegroundColor Green
         Write-Host 'This is a self-signed DEV certificate - see docs/security/code-signing.md.' -ForegroundColor Yellow
+
+        # Add-AppDevPackage.ps1 (generated alongside the .msix) needs exactly one .cer next to
+        # it to auto-trust the certificate on install - copy ours there so it's found.
+        if (Test-Path $CerPath) {
+            Copy-Item -Path $CerPath -Destination $msix.DirectoryName -Force
+            Write-Host "Copied dev certificate to: $(Join-Path $msix.DirectoryName (Split-Path $CerPath -Leaf))" -ForegroundColor Green
+        }
+        else {
+            Write-Warning "No .cer at $CerPath - Add-AppDevPackage.ps1 won't be able to auto-trust this package. Run tools/create-dev-signing-cert.ps1 to generate one."
+        }
     }
 }
 

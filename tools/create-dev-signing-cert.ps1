@@ -8,13 +8,17 @@
     exactly match Package.appxmanifest's Identity/Publisher (CN=sarayunova) or the resulting
     package will fail to install. See docs/security/code-signing.md.
 
-    The exported .pfx is written next to this script (tools/) and is gitignored - never commit
-    it or its password. Each developer runs this once locally to get their own dev cert.
+    Exports both the .pfx (private key, used for signing) and a .cer (public certificate only,
+    used to trust the package for install - e.g. via Add-AppDevPackage.ps1 or
+    Import-Certificate -CertStoreLocation Cert:\LocalMachine\TrustedPeople). Both are written next
+    to this script (tools/) and are gitignored - never commit them. Each developer runs this once
+    locally to get their own dev cert.
 #>
 [CmdletBinding()]
 param(
     [string]$Subject = "CN=sarayunova",
     [string]$PfxPath,
+    [string]$CerPath,
     [System.Security.SecureString]$Password
 )
 
@@ -22,6 +26,7 @@ $ErrorActionPreference = "Stop"
 
 $scriptRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
 if (-not $PfxPath) { $PfxPath = Join-Path $scriptRoot "dev-signing-cert.pfx" }
+if (-not $CerPath) { $CerPath = Join-Path $scriptRoot "dev-signing-cert.cer" }
 if (-not $Password) { $Password = ConvertTo-SecureString -String "devcert" -Force -AsPlainText }
 
 $existing = Get-ChildItem -Path Cert:\CurrentUser\My | Where-Object { $_.Subject -eq $Subject -and $_.HasPrivateKey }
@@ -43,7 +48,12 @@ else {
 
 Export-PfxCertificate -Cert $cert -FilePath $PfxPath -Password $Password | Out-Null
 Write-Output "Exported PFX to: $PfxPath (default password 'devcert' unless -Password was supplied)"
+
+Export-Certificate -Cert $cert -FilePath $CerPath | Out-Null
+Write-Output "Exported public certificate to: $CerPath"
 Write-Output ""
 Write-Output "This certificate is for LOCAL SIDELOAD TESTING ONLY - see docs/security/code-signing.md."
-Write-Output "To install a package signed with it on a test machine, first trust the certificate:"
-Write-Output "  Import-Certificate -FilePath <exported .cer> -CertStoreLocation Cert:\LocalMachine\TrustedPeople"
+Write-Output "To install a package signed with it, either:"
+Write-Output "  - Copy $CerPath next to the .msix so Add-AppDevPackage.ps1 finds and trusts it automatically, or"
+Write-Output "  - Trust it directly (as Administrator):"
+Write-Output "      Import-Certificate -FilePath `"$CerPath`" -CertStoreLocation Cert:\LocalMachine\TrustedPeople"
