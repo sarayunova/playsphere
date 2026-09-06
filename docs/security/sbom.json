@@ -1,0 +1,383 @@
+﻿{
+    "generatedAt":  "2026-09-06T09:39:10.7104972+05:30",
+    "component":  "PlaySphere.App",
+    "sourceProject":  "src/PlaySphere.App/PlaySphere.App.csproj",
+    "packages":  [
+                     {
+                         "Id":  "LibVLCSharp.WinUI",
+                         "Version":  "3.10.1",
+                         "License":  "LGPL-2.1-or-later",
+                         "Authors":  "VideoLAN",
+                         "ProjectUrl":  "https://code.videolan.org/videolan/LibVLCSharp",
+                         "Flag":  "REVIEW - LGPL (dynamic-linking/relinking obligations)"
+                     },
+                     {
+                         "Id":  "LibVLCSharp",
+                         "Version":  "3.10.1",
+                         "License":  "LGPL-2.1-or-later",
+                         "Authors":  "VideoLAN",
+                         "ProjectUrl":  "https://code.videolan.org/videolan/LibVLCSharp",
+                         "Flag":  "REVIEW - LGPL (dynamic-linking/relinking obligations)"
+                     },
+                     {
+                         "Id":  "Microsoft.Data.Sqlite.Core",
+                         "Version":  "10.0.11",
+                         "License":  "MIT",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://docs.microsoft.com/dotnet/standard/data/sqlite/",
+                         "Flag":  "OK"
+                     },
+                     {
+                         "Id":  "Microsoft.EntityFrameworkCore.Abstractions",
+                         "Version":  "10.0.11",
+                         "License":  "MIT",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://docs.microsoft.com/ef/core/",
+                         "Flag":  "OK"
+                     },
+                     {
+                         "Id":  "Microsoft.EntityFrameworkCore.Analyzers",
+                         "Version":  "10.0.11",
+                         "License":  "MIT",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://docs.microsoft.com/ef/core/",
+                         "Flag":  "OK"
+                     },
+                     {
+                         "Id":  "Microsoft.EntityFrameworkCore.Relational",
+                         "Version":  "10.0.11",
+                         "License":  "MIT",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://docs.microsoft.com/ef/core/",
+                         "Flag":  "OK"
+                     },
+                     {
+                         "Id":  "Microsoft.EntityFrameworkCore.Sqlite.Core",
+                         "Version":  "10.0.11",
+                         "License":  "MIT",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://docs.microsoft.com/ef/core/",
+                         "Flag":  "OK"
+                     },
+                     {
+                         "Id":  "Microsoft.EntityFrameworkCore.Sqlite",
+                         "Version":  "10.0.11",
+                         "License":  "MIT",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://docs.microsoft.com/ef/core/",
+                         "Flag":  "OK"
+                     },
+                     {
+                         "Id":  "Microsoft.EntityFrameworkCore",
+                         "Version":  "10.0.11",
+                         "License":  "MIT",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://docs.microsoft.com/ef/core/",
+                         "Flag":  "OK"
+                     },
+                     {
+                         "Id":  "Microsoft.Extensions.Caching.Abstractions",
+                         "Version":  "10.0.11",
+                         "License":  "MIT",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://dot.net/",
+                         "Flag":  "OK"
+                     },
+                     {
+                         "Id":  "Microsoft.Extensions.Caching.Memory",
+                         "Version":  "10.0.11",
+                         "License":  "MIT",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://dot.net/",
+                         "Flag":  "OK"
+                     },
+                     {
+                         "Id":  "Microsoft.Extensions.Configuration.Abstractions",
+                         "Version":  "10.0.11",
+                         "License":  "MIT",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://dot.net/",
+                         "Flag":  "OK"
+                     },
+                     {
+                         "Id":  "Microsoft.Extensions.DependencyInjection.Abstractions",
+                         "Version":  "10.0.11",
+                         "License":  "MIT",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://dot.net/",
+                         "Flag":  "OK"
+                     },
+                     {
+                         "Id":  "Microsoft.Extensions.DependencyInjection",
+                         "Version":  "10.0.11",
+                         "License":  "MIT",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://dot.net/",
+                         "Flag":  "OK"
+                     },
+                     {
+                         "Id":  "Microsoft.Extensions.DependencyModel",
+                         "Version":  "10.0.11",
+                         "License":  "MIT",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://dot.net/",
+                         "Flag":  "OK"
+                     },
+                     {
+                         "Id":  "Microsoft.Extensions.Logging.Abstractions",
+                         "Version":  "10.0.11",
+                         "License":  "MIT",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://dot.net/",
+                         "Flag":  "OK"
+                     },
+                     {
+                         "Id":  "Microsoft.Extensions.Logging.Debug",
+                         "Version":  "10.0.11",
+                         "License":  "MIT",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://dot.net/",
+                         "Flag":  "OK"
+                     },
+                     {
+                         "Id":  "Microsoft.Extensions.Logging",
+                         "Version":  "10.0.11",
+                         "License":  "MIT",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://dot.net/",
+                         "Flag":  "OK"
+                     },
+                     {
+                         "Id":  "Microsoft.Extensions.Options",
+                         "Version":  "10.0.11",
+                         "License":  "MIT",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://dot.net/",
+                         "Flag":  "OK"
+                     },
+                     {
+                         "Id":  "Microsoft.Extensions.Primitives",
+                         "Version":  "10.0.11",
+                         "License":  "MIT",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://dot.net/",
+                         "Flag":  "OK"
+                     },
+                     {
+                         "Id":  "Microsoft.Graphics.Win2D",
+                         "Version":  "1.4.0",
+                         "License":  "http://www.microsoft.com/web/webpi/eula/eula_win2d_10012014.htm",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "http://go.microsoft.com/fwlink/?LinkID=519078",
+                         "Flag":  "VERIFY - not a recognized SPDX expression (bare URL/EULA/custom text - open the link and check)"
+                     },
+                     {
+                         "Id":  "Microsoft.NETCore.Platforms",
+                         "Version":  "1.1.0",
+                         "License":  "http://go.microsoft.com/fwlink/?LinkId=329770",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://dot.net/",
+                         "Flag":  "VERIFY - not a recognized SPDX expression (bare URL/EULA/custom text - open the link and check)"
+                     },
+                     {
+                         "Id":  "Microsoft.Web.WebView2",
+                         "Version":  "1.0.3179.45",
+                         "License":  "LICENSE.txt",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://aka.ms/webview",
+                         "Flag":  "VERIFY - not a recognized SPDX expression (bare URL/EULA/custom text - open the link and check)"
+                     },
+                     {
+                         "Id":  "Microsoft.Windows.SDK.BuildTools.MSIX",
+                         "Version":  "1.7.20250829.1",
+                         "License":  "sdk_license.txt",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://aka.ms/WinSDKProjectURL",
+                         "Flag":  "VERIFY - not a recognized SPDX expression (bare URL/EULA/custom text - open the link and check)"
+                     },
+                     {
+                         "Id":  "Microsoft.Windows.SDK.BuildTools",
+                         "Version":  "10.0.26100.4654",
+                         "License":  "https://aka.ms/WinSDKLicenseURL",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://aka.ms/WinSDKProjectURL",
+                         "Flag":  "VERIFY - not a recognized SPDX expression (bare URL/EULA/custom text - open the link and check)"
+                     },
+                     {
+                         "Id":  "Microsoft.WindowsAppSDK.AI",
+                         "Version":  "1.8.79",
+                         "License":  "license.txt",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://github.com/microsoft/windowsappsdk",
+                         "Flag":  "VERIFY - not a recognized SPDX expression (bare URL/EULA/custom text - open the link and check)"
+                     },
+                     {
+                         "Id":  "Microsoft.WindowsAppSDK.Base",
+                         "Version":  "1.8.251216001",
+                         "License":  "license.txt",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://github.com/microsoft/windowsappsdk",
+                         "Flag":  "VERIFY - not a recognized SPDX expression (bare URL/EULA/custom text - open the link and check)"
+                     },
+                     {
+                         "Id":  "Microsoft.WindowsAppSDK.DWrite",
+                         "Version":  "1.8.25122902",
+                         "License":  "license.txt",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://aka.ms/WindowsAppSDK",
+                         "Flag":  "VERIFY - not a recognized SPDX expression (bare URL/EULA/custom text - open the link and check)"
+                     },
+                     {
+                         "Id":  "Microsoft.WindowsAppSDK.Foundation",
+                         "Version":  "1.8.260803002",
+                         "License":  "license.txt",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://aka.ms/windowsappsdk",
+                         "Flag":  "VERIFY - not a recognized SPDX expression (bare URL/EULA/custom text - open the link and check)"
+                     },
+                     {
+                         "Id":  "Microsoft.WindowsAppSDK.InteractiveExperiences",
+                         "Version":  "1.8.260708001",
+                         "License":  "license.txt",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://aka.ms/windowsappsdk",
+                         "Flag":  "VERIFY - not a recognized SPDX expression (bare URL/EULA/custom text - open the link and check)"
+                     },
+                     {
+                         "Id":  "Microsoft.WindowsAppSDK.ML",
+                         "Version":  "1.8.2197",
+                         "License":  "license.txt",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://github.com/microsoft/windowsappsdk",
+                         "Flag":  "VERIFY - not a recognized SPDX expression (bare URL/EULA/custom text - open the link and check)"
+                     },
+                     {
+                         "Id":  "Microsoft.WindowsAppSDK.Runtime",
+                         "Version":  "1.8.260804001",
+                         "License":  "license.txt",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://github.com/microsoft/windowsappsdk",
+                         "Flag":  "VERIFY - not a recognized SPDX expression (bare URL/EULA/custom text - open the link and check)"
+                     },
+                     {
+                         "Id":  "Microsoft.WindowsAppSDK.Widgets",
+                         "Version":  "1.8.251231004",
+                         "License":  "license.txt",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://github.com/microsoft/windowsappsdk",
+                         "Flag":  "VERIFY - not a recognized SPDX expression (bare URL/EULA/custom text - open the link and check)"
+                     },
+                     {
+                         "Id":  "Microsoft.WindowsAppSDK.WinUI",
+                         "Version":  "1.8.260803003",
+                         "License":  "license.txt",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://github.com/microsoft/windowsappsdk",
+                         "Flag":  "VERIFY - not a recognized SPDX expression (bare URL/EULA/custom text - open the link and check)"
+                     },
+                     {
+                         "Id":  "Microsoft.WindowsAppSDK",
+                         "Version":  "1.8.260804001",
+                         "License":  "license.txt",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://github.com/microsoft/windowsappsdk",
+                         "Flag":  "VERIFY - not a recognized SPDX expression (bare URL/EULA/custom text - open the link and check)"
+                     },
+                     {
+                         "Id":  "NAudio.Core",
+                         "Version":  "3.0.1",
+                         "License":  "MIT",
+                         "Authors":  "Mark Heath",
+                         "ProjectUrl":  "https://naudio.github.io/NAudio/",
+                         "Flag":  "OK"
+                     },
+                     {
+                         "Id":  "NAudio.Wasapi",
+                         "Version":  "3.0.1",
+                         "License":  "MIT",
+                         "Authors":  "Mark Heath",
+                         "ProjectUrl":  "https://naudio.github.io/NAudio/",
+                         "Flag":  "OK"
+                     },
+                     {
+                         "Id":  "NETStandard.Library",
+                         "Version":  "1.6.1",
+                         "License":  "http://go.microsoft.com/fwlink/?LinkId=329770",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://dot.net/",
+                         "Flag":  "VERIFY - not a recognized SPDX expression (bare URL/EULA/custom text - open the link and check)"
+                     },
+                     {
+                         "Id":  "SharpDX.Direct3D11",
+                         "Version":  "4.2.0",
+                         "License":  "http://sharpdx.org/License.txt",
+                         "Authors":  "Alexandre Mutel",
+                         "ProjectUrl":  "http://sharpdx.org/",
+                         "Flag":  "VERIFY - not a recognized SPDX expression (bare URL/EULA/custom text - open the link and check)"
+                     },
+                     {
+                         "Id":  "SharpDX.DXGI",
+                         "Version":  "4.2.0",
+                         "License":  "http://sharpdx.org/License.txt",
+                         "Authors":  "Alexandre Mutel",
+                         "ProjectUrl":  "http://sharpdx.org/",
+                         "Flag":  "VERIFY - not a recognized SPDX expression (bare URL/EULA/custom text - open the link and check)"
+                     },
+                     {
+                         "Id":  "SharpDX",
+                         "Version":  "4.2.0",
+                         "License":  "http://sharpdx.org/License.txt",
+                         "Authors":  "Alexandre Mutel",
+                         "ProjectUrl":  "http://sharpdx.org/",
+                         "Flag":  "VERIFY - not a recognized SPDX expression (bare URL/EULA/custom text - open the link and check)"
+                     },
+                     {
+                         "Id":  "SQLitePCLRaw.bundle_e_sqlite3",
+                         "Version":  "2.1.12",
+                         "License":  "Apache-2.0",
+                         "Authors":  "Eric Sink",
+                         "ProjectUrl":  "https://github.com/ericsink/SQLitePCL.raw",
+                         "Flag":  "OK"
+                     },
+                     {
+                         "Id":  "SQLitePCLRaw.core",
+                         "Version":  "2.1.12",
+                         "License":  "Apache-2.0",
+                         "Authors":  "Eric Sink",
+                         "ProjectUrl":  "https://github.com/ericsink/SQLitePCL.raw",
+                         "Flag":  "OK"
+                     },
+                     {
+                         "Id":  "SQLitePCLRaw.lib.e_sqlite3",
+                         "Version":  "2.1.12",
+                         "License":  "Apache-2.0",
+                         "Authors":  "Eric Sink",
+                         "ProjectUrl":  "https://github.com/ericsink/SQLitePCL.raw",
+                         "Flag":  "OK"
+                     },
+                     {
+                         "Id":  "SQLitePCLRaw.provider.e_sqlite3",
+                         "Version":  "2.1.12",
+                         "License":  "Apache-2.0",
+                         "Authors":  "Eric Sink",
+                         "ProjectUrl":  "https://github.com/ericsink/SQLitePCL.raw",
+                         "Flag":  "OK"
+                     },
+                     {
+                         "Id":  "System.Numerics.Tensors",
+                         "Version":  "9.0.0",
+                         "License":  "MIT",
+                         "Authors":  "Microsoft",
+                         "ProjectUrl":  "https://dot.net/",
+                         "Flag":  "OK"
+                     },
+                     {
+                         "Id":  "VideoLAN.LibVLC.Windows",
+                         "Version":  "3.0.23.1",
+                         "License":  "LGPL-2.1-or-later",
+                         "Authors":  "VideoLAN",
+                         "ProjectUrl":  "https://code.videolan.org/videolan/libvlc-nuget",
+                         "Flag":  "REVIEW - LGPL (dynamic-linking/relinking obligations)"
+                     }
+                 ]
+}
