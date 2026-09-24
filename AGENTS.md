@@ -1898,3 +1898,38 @@ tools/verify-environment.ps1     # dotnet + NuGet checks
     fetching). If a video still hangs after this, the remaining suspicion moves to the video-surface/swap-chain
     attach path (`PlayerPage` → `AttachVideoSurfaceAsync` → `RebuildRenderer` with `SwapChainOptions`), not the
     audio/parse path (which the log proves healthy).
+- **White titlebar + generic taskbar icon — FIXED (2026-09-25):** user reported the window's caption
+  bar was white (not matching PlaySphere's dark content) and the taskbar showed a default Windows
+  app icon instead of the app's own artwork while running.
+  - **Titlebar root cause:** the native Windows caption bar follows the OS light/dark setting, not
+    this app's `RequestedTheme="Dark"` (`App.xaml`) — on a light-themed OS the titlebar rendered
+    white over the dark UI. Fixed in `src/PlaySphere.App/MainWindow.xaml.cs`: a new
+    `ApplyDarkTitleBar()` (called from the `MainWindow` ctor) sets the DWM
+    `DWMWA_USE_IMMERSIVE_DARK_MODE` attribute (attribute id 20, via a `dwmapi.dll` P/Invoke on the
+    HWND from `WinRT.Interop.WindowNative.GetWindowHandle(this)`) to darken the native frame/border,
+    and themes `AppWindow.TitleBar`'s background/foreground/button colors to the app's palette
+    (`#0E1117` background, `#F8FAFC` foreground, `#263142` hover — matching
+    `ColorBackgroundPrimary`/`ColorTextPrimary`/`ColorSurfaceHover` in `DesignTokens.xaml`).
+    Best-effort/try-catch throughout, same pattern as the existing `SetWindowIcon()`.
+  - **Taskbar icon:** turned out NOT to be a code bug — `SetWindowIcon()` (pre-existing) was already
+    calling `AppWindow.SetIcon` correctly. Confirmed via temporary diagnostic logging (added, verified,
+    then removed — never committed) that the call succeeds with no exception, and via
+    `ExtractIconEx`/`ExtractAssociatedIcon` that the built exe has exactly one embedded icon resource
+    (the real `app.ico`, not a fallback). The generic icon the user saw was **Windows' icon cache**
+    showing a stale/default icon from before the exe had its custom artwork embedded. Fixed by
+    clearing `%LOCALAPPDATA%\IconCache.db` +
+    `%LOCALAPPDATA%\Microsoft\Windows\Explorer\iconcache_*.db` and restarting `explorer.exe`, then
+    relaunching the freshly rebuilt exe — confirmed via screenshot that the taskbar now shows the
+    correct gradient play-triangle/orbit icon. **Lesson for next time a "taskbar icon is wrong" report
+    comes in:** check the icon cache before assuming a code regression — `ExtractIconEx` on the built
+    exe is a fast way to confirm the icon is actually embedded correctly before chasing the runtime
+    `SetIcon` path.
+  - Also required installing the **.NET 10 SDK** (10.0.401) via `winget install
+    Microsoft.DotNet.SDK.10` on this machine, which previously only had 8.0.425 — `global.json` pins
+    `10.0.400` with `rollForward: latestPatch`, which doesn't bridge major versions, so builds failed
+    until the correct SDK was present.
+  - Committed as `7915ef3` ("Fix white titlebar and taskbar icon not reflecting the app's dark
+    theme"), build clean (0 warnings/errors) both before and after the temporary diagnostic logging
+    was added/removed. No automated test coverage (native window-chrome/taskbar behavior, not
+    unit-testable) — verified by an actual screenshot of the running app's taskbar entry, zoomed in
+    to confirm the icon pixel-for-pixel.
