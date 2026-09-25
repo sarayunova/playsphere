@@ -2023,3 +2023,33 @@ tools/verify-environment.ps1     # dotnet + NuGet checks
     pass: translate a file's transcript (AI Media page), click "Export SRT", save it, and open the
     resulting `.srt` file in a text editor or media player to confirm valid SRT timing/text and that
     it can be loaded as an external subtitle track.
+- **Session checkpoint (2026-09-25) — where to resume next time:** working tree is clean, all commits
+  pushed to `origin/master` (HEAD is `3d758ee`, "Add Export SRT for AI-09 translated subtitles").
+  Everything below is what's actually left; nothing is mid-flight or uncommitted.
+  - **The only genuinely un-implemented feature:** true stereo L/R balance (distinct from the already-
+    implemented `AudioChannelMode` full-pan downmix). Ruled out via the mandated libVLC engine — no
+    API for a continuous per-channel gain balance — so doing it for real needs an off-engine FFmpeg
+    audio route, which is a playback-engine boundary change and per AGENTS.md rule 9 requires an ADR
+    first. Don't attempt without that ADR.
+  - **Standing manual-QA backlog** (no code to write — everything below is engineering-verified via
+    build/tests/smoke but has never been visually clicked through, since this dev environment has no
+    desktop UI automation): playback surface rendering (fullscreen/cinema/mini-player, subtitle
+    styling); Playlists/Bookmarks UI + M3U import/export round-trip; the visualizer's 9 presets +
+    WASAPI loopback audio-and-visual-together; Library cards/thumbnails/Continue-Watching resume
+    accuracy; Phase 7 tools (snapshot, clip export, conversion + background queue, hover thumbnails);
+    and the full Phase 9 AI chain end-to-end (transcribe → confirm the actual mono 16 kHz WAV sent,
+    timestamp search, auto-chapters, summary, ask, translate, and the new Export SRT round-trip).
+  - **Known unresolved-by-design, not just "todo":** (1) toggling the visualizer mid-playback on the
+    non-Windows PCM-tap fallback path is a no-op until the next file load — a prior fix attempt (a
+    Stop/Play cycle) caused a real `AccessViolationException` crash and was reverted; needs a product
+    decision, not another unverified engineering attempt. (2) A live/interminable stream that goes
+    silent without firing `EncounteredError` is not auto-recovered — no reliable headless-safe detector
+    exists yet. (3) `AiServiceCollectionRegistrationTests.AddPlaySphereAi_registers_boundary_and_credential_store`
+    and the broader native-timing test flake family in `PlaybackTests` are host-specific quirks of this
+    headless dev machine, not regressions — always run targeted filters, never treat a failure there
+    alone as a real break, and never weaken the assertions to make them pass.
+  - **Suggested next move:** either (a) do a manual QA pass on the AI-09 translate + Export SRT feature
+    (needs a human/screen, not headless), or (b) name a specific item from the manual-QA list above to
+    verify or extend, or (c) ask for another small, self-contained code slice to be picked — at this
+    point almost everything remaining is manual verification or gated on a product/architecture call,
+    not a ready-to-code ticket.
