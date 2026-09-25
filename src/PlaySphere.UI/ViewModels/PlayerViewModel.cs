@@ -73,7 +73,12 @@ public sealed class PlayerViewModel : INotifyPropertyChanged, IDisposable
     private readonly string? _waveformCacheDir;
     private WaveformResult? _waveform;
 
-    public PlayerViewModel(IMediaPlaybackEngine engine, IMediaLibraryRepository? repository = null, string? thumbnailDirectory = null, IPreferencesStore? preferences = null, IMediaClipExporter? clipExporter = null, IMediaConverter? mediaConverter = null, IMediaThumbnailProvider? thumbnailProvider = null, string? thumbnailStripCacheDir = null, IWaveformProvider? waveformProvider = null, string? waveformCacheDir = null, IGenerateChaptersRunner? generateChaptersRunner = null)
+    // Stereo balance (ADR-0011). Per-loaded-file, like marks/thumbnails: reset on every LoadAsync
+    // and torn down on Dispose so the secondary audio path never outlives the file it was bound to.
+    private readonly IStereoBalanceAudioSession? _stereoBalanceSession;
+    private StereoBalance _stereoBalance = StereoBalance.Center;
+
+    public PlayerViewModel(IMediaPlaybackEngine engine, IMediaLibraryRepository? repository = null, string? thumbnailDirectory = null, IPreferencesStore? preferences = null, IMediaClipExporter? clipExporter = null, IMediaConverter? mediaConverter = null, IMediaThumbnailProvider? thumbnailProvider = null, string? thumbnailStripCacheDir = null, IWaveformProvider? waveformProvider = null, string? waveformCacheDir = null, IGenerateChaptersRunner? generateChaptersRunner = null, IStereoBalanceAudioSession? stereoBalanceSession = null)
     {
         ArgumentNullException.ThrowIfNull(engine);
         _engine = engine;
@@ -87,6 +92,7 @@ public sealed class PlayerViewModel : INotifyPropertyChanged, IDisposable
         _waveformProvider = waveformProvider;
         _waveformCacheDir = waveformCacheDir;
         _chaptersRunner = generateChaptersRunner;
+        _stereoBalanceSession = stereoBalanceSession;
 
         _engine.StateChanged += OnStateChanged;
         _engine.PositionChanged += OnPositionChanged;
@@ -399,6 +405,7 @@ public sealed class PlayerViewModel : INotifyPropertyChanged, IDisposable
         ClearMarks();
         ClearThumbnailStrip();
         ClearWaveform();
+        await DisableStereoBalanceAsync().ConfigureAwait(false);
         await _engine.LoadAsync(media, cancellationToken).ConfigureAwait(false);
         NotifyAll();
 
@@ -960,6 +967,99 @@ public sealed class PlayerViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
+    // ── Stereo balance (ADR-0011, docs/design/stereo-balance-av-sync.md) ──────
+
+    /// <summary>Current balance value, -100 (full left) .. +100 (full right), 0 = centered.</summary>
+    public int StereoBalanceValue => _stereoBalance.Value;
+
+    /// <summary>True when the secondary balance-audio path is currently running (engine audio is muted).</summary>
+    public bool IsStereoBalanceActive => _stereoBalanceSession?.IsActive ?? false;
+
+    /// <summary>True when balance can be adjusted: a session exists and a local file is loaded.</summary>
+    public bool CanUseStereoBalance => _stereoBalanceSession != null &&
+                                        !string.IsNullOrWhiteSpace(FilePath) &&
+                                        !MediaFile.FromPathOrUri(FilePath).IsRemoteUri;
+
+    /// <summary>
+    /// Sets the stereo balance. A centered value stops the secondary audio path and restores normal
+    /// (unmuted) engine audio; any other value starts/updates the secondary path and mutes the
+    /// engine's own output while it runs (only libVLC's audio would otherwise double up with the
+    /// balance-filtered stream). Best-effort: if the secondary path fails to start, the engine is
+    /// left unmuted and the balance value is not changed, so the user never loses audio entirely.
+    /// </summary>
+    public async Task SetStereoBalanceAsync(int value, CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_stereoBalanceSession is null || !CanUseStereoBalance)
+        {
+            return;
+        }
+
+        var balance = new StereoBalance(StereoBalance.Clamp(value));
+
+        try
+        {
+            if (balance.IsCentered)
+            {
+                if (_stereoBalanceSession.IsActive)
+                {
+                    await _stereoBalanceSession.StopAsync().ConfigureAwait(false);
+                    await _engine.SetMutedAsync(false, cancellationToken).ConfigureAwait(false);
+                }
+                _stereoBalance = balance;
+            }
+            else if (_stereoBalanceSession.IsActive)
+            {
+                var updated = await _stereoBalanceSession.UpdateBalanceAsync(balance, () => _engine.Position, cancellationToken).ConfigureAwait(false);
+                if (updated)
+                {
+                    _stereoBalance = balance;
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(FilePath))
+            {
+                var started = await _stereoBalanceSession.StartAsync(FilePath, balance, () => _engine.Position, cancellationToken).ConfigureAwait(false);
+                if (started)
+                {
+                    await _engine.SetMutedAsync(true, cancellationToken).ConfigureAwait(false);
+                    _stereoBalance = balance;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // Best-effort — never let a balance-audio failure take playback down.
+            System.Diagnostics.Debug.WriteLine($"Stereo balance update failed: {ex}");
+        }
+
+        Notify(nameof(StereoBalanceValue));
+        Notify(nameof(IsStereoBalanceActive));
+    }
+
+    /// <summary>Stops any active secondary balance-audio path and restores normal engine audio, best-effort.</summary>
+    private async Task DisableStereoBalanceAsync()
+    {
+        if (_stereoBalanceSession is null || !_stereoBalanceSession.IsActive)
+        {
+            _stereoBalance = StereoBalance.Center;
+            return;
+        }
+
+        try
+        {
+            await _stereoBalanceSession.StopAsync().ConfigureAwait(false);
+            await _engine.SetMutedAsync(false).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Stereo balance teardown failed: {ex}");
+        }
+        finally
+        {
+            _stereoBalance = StereoBalance.Center;
+        }
+    }
+
     private double MarkPercent(TimeSpan? mark)
     {
         if (mark is not { } t || _engine.Duration <= TimeSpan.Zero)
@@ -1245,6 +1345,7 @@ public sealed class PlayerViewModel : INotifyPropertyChanged, IDisposable
         if (!_mediaEnded)
         {
             await _engine.SeekAsync(target).ConfigureAwait(false);
+            NotifyStereoBalanceSeeked(target);
             return;
         }
 
@@ -1262,6 +1363,32 @@ public sealed class PlayerViewModel : INotifyPropertyChanged, IDisposable
         for (var i = 0; i < 100 && _engine.State != PlaybackState.Playing; i++)
             await Task.Delay(20).ConfigureAwait(false);
         await _engine.SeekAsync(target).ConfigureAwait(false);
+        NotifyStereoBalanceSeeked(target);
+    }
+
+    /// <summary>
+    /// Fire-and-forget, best-effort notice to the active balance-audio session that the engine
+    /// transport jumped (design note item 4) — never awaited from the seek path so scrubbing the
+    /// timeline doesn't stall on the secondary session's ffmpeg-restart latency.
+    /// </summary>
+    private void NotifyStereoBalanceSeeked(TimeSpan target)
+    {
+        if (_stereoBalanceSession is not { IsActive: true } session)
+        {
+            return;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await session.NotifyEngineSeekedAsync(target).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Stereo balance seek notify failed: {ex}");
+            }
+        });
     }
 
 
@@ -1924,6 +2051,9 @@ public sealed class PlayerViewModel : INotifyPropertyChanged, IDisposable
         Notify(nameof(CanConvert));
         Notify(nameof(Chapters));
         Notify(nameof(CanGenerateChapters));
+        Notify(nameof(StereoBalanceValue));
+        Notify(nameof(IsStereoBalanceActive));
+        Notify(nameof(CanUseStereoBalance));
     }
 
     private static string FormatDelay(TimeSpan delay)
@@ -1954,5 +2084,6 @@ public sealed class PlayerViewModel : INotifyPropertyChanged, IDisposable
         _engine.EqualizerChanged -= OnEqualizerChanged;
         _engine.EndReached -= OnEngineEndReached;
         _ = RecordSessionAsync();
+        _ = DisableStereoBalanceAsync();
     }
 }

@@ -58,6 +58,7 @@ public partial class App : Microsoft.UI.Xaml.Application
             .AddPlaySpherePreferences()
             .AddPlaySphereVisualizer()
             .AddPlaySphereAudio()
+            .AddPlaySphereStereoBalance(ConfigureStereoBalanceOptions())
             .AddPlaySphereAi(ConfigureAiOptions())
             .AddSingleton<IWindowService, AppWindowService>()
             .BuildServiceProvider();
@@ -194,6 +195,18 @@ private static ThumbnailStripOptions? ConfigureFfMpegThumbnailOptions()
     {
         var ffmpeg = FindUpwards("tools", "ffmpeg", "ffmpeg.exe");
         return ffmpeg is null ? null : new FfMpegAudioExtractOptions { ExecutablePath = ffmpeg };
+    }
+
+    /// <summary>
+    /// Points the stereo-balance secondary audio session (ADR-0011) at the checked-in
+    /// <c>tools\ffmpeg\ffmpeg.exe</c> when running from a repository checkout. Returns <c>null</c>
+    /// when it cannot be found — the session then looks next to the app, otherwise stays unavailable
+    /// (balance is simply a no-op) rather than failing at startup.
+    /// </summary>
+    private static PlaySphere.Audio.StereoBalanceAudioOptions? ConfigureStereoBalanceOptions()
+    {
+        var ffmpeg = FindUpwards("tools", "ffmpeg", "ffmpeg.exe");
+        return ffmpeg is null ? null : new PlaySphere.Audio.StereoBalanceAudioOptions { ExecutablePath = ffmpeg };
     }
 
     /// <summary>

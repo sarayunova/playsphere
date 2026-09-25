@@ -1,5 +1,6 @@
 using System;
 using Microsoft.Extensions.DependencyInjection;
+using PlaySphere.Application.Media;
 using PlaySphere.Application.Visualizer;
 using PlaySphere.Visualizer;
 
@@ -39,16 +40,17 @@ public static class AudioServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Registers the stereo-balance secondary audio session (ADR-0011 Stage 2). Not wired into
-    /// <c>PlayerViewModel</c>/the UI yet — this only makes <see cref="StereoBalanceAudioSession"/>
-    /// resolvable for that follow-up slice.
+    /// Registers the stereo-balance secondary audio session (ADR-0011) as
+    /// <see cref="IStereoBalanceAudioSession"/> — the contract <c>PlayerViewModel</c>/<c>PlayerPage</c>
+    /// resolve via DI, never the concrete <see cref="StereoBalanceAudioSession"/> type (mirrors
+    /// <see cref="AddPlaySphereAudio"/>'s <see cref="IVisualizerAudioSource"/> boundary).
     /// </summary>
     public static IServiceCollection AddPlaySphereStereoBalance(this IServiceCollection services, StereoBalanceAudioOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(services);
 
         services.AddSingleton(options ?? new StereoBalanceAudioOptions());
-        services.AddSingleton<StereoBalanceAudioSession>();
+        services.AddSingleton<IStereoBalanceAudioSession, StereoBalanceAudioSession>();
 
         return services;
     }

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using NAudio.Wave;
+using PlaySphere.Application.Media;
 using PlaySphere.Domain.Media;
 using PlaySphere.Media.Export;
 
@@ -24,7 +25,7 @@ namespace PlaySphere.Audio;
 /// Deliberately NOT wired into <c>PlayerViewModel</c>/the UI yet — that is a separate follow-up
 /// slice once this session class itself is reviewed.
 /// </summary>
-public sealed class StereoBalanceAudioSession : IAsyncDisposable
+public sealed class StereoBalanceAudioSession : IStereoBalanceAudioSession, IAsyncDisposable
 {
     private readonly ILogger<StereoBalanceAudioSession> _logger;
     private readonly string? _executablePath;

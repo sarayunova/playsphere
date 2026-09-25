@@ -54,6 +54,8 @@ public sealed partial class PlayerPage : Page
     private bool _isDraggingAudioSlider;
     private bool _isPopulatingDrawer;
     private bool _isPointerOverControls;
+    private DispatcherTimer? _stereoBalanceDebounceTimer;
+    private int _pendingStereoBalanceValue;
 
     // Tracks the in-flight ViewModel.LoadAsync/LoadCollectionAsync call so AttachVideoHostAsync can
     // wait for it (see the comment there): the VideoView's own native init fires VideoHost_Initialized
@@ -125,6 +127,13 @@ public sealed partial class PlayerPage : Page
             _autoHideTimer.Stop();
             _autoHideTimer.Tick -= AutoHideTimer_Tick;
             _autoHideTimer = null;
+        }
+
+        if (_stereoBalanceDebounceTimer != null)
+        {
+            _stereoBalanceDebounceTimer.Stop();
+            _stereoBalanceDebounceTimer.Tick -= StereoBalanceDebounceTimer_Tick;
+            _stereoBalanceDebounceTimer = null;
         }
 
         // Leaving the player should return the window to a normal, chrome-bearing state so the user
@@ -205,6 +214,7 @@ public sealed partial class PlayerPage : Page
         var thumbnailProvider = PlaySphereServices.GetOptional<PlaySphere.Application.Media.IMediaThumbnailProvider>();
         var waveformProvider = PlaySphereServices.GetOptional<PlaySphere.Application.Media.IWaveformProvider>();
         var generateChaptersRunner = PlaySphereServices.GetOptional<PlaySphere.Application.AI.IGenerateChaptersRunner>();
+        var stereoBalanceSession = PlaySphereServices.GetOptional<PlaySphere.Application.Media.IStereoBalanceAudioSession>();
 
         if (e.Parameter is PlayerViewModel vm)
         {
@@ -212,14 +222,14 @@ public sealed partial class PlayerPage : Page
         }
         else if (e.Parameter is IMediaPlaybackEngine engine)
         {
-            ViewModel = new PlayerViewModel(engine, libraryRepository, preferences: preferences, clipExporter: clipExporter, mediaConverter: mediaConverter, thumbnailProvider: thumbnailProvider, waveformProvider: waveformProvider, generateChaptersRunner: generateChaptersRunner);
+            ViewModel = new PlayerViewModel(engine, libraryRepository, preferences: preferences, clipExporter: clipExporter, mediaConverter: mediaConverter, thumbnailProvider: thumbnailProvider, waveformProvider: waveformProvider, generateChaptersRunner: generateChaptersRunner, stereoBalanceSession: stereoBalanceSession);
         }
         else if (e.Parameter is string filePath)
         {
             var resolvedEngine = _engine;
             if (resolvedEngine != null)
             {
-                ViewModel = new PlayerViewModel(resolvedEngine, libraryRepository, preferences: preferences, clipExporter: clipExporter, mediaConverter: mediaConverter, thumbnailProvider: thumbnailProvider, generateChaptersRunner: generateChaptersRunner);
+                ViewModel = new PlayerViewModel(resolvedEngine, libraryRepository, preferences: preferences, clipExporter: clipExporter, mediaConverter: mediaConverter, thumbnailProvider: thumbnailProvider, generateChaptersRunner: generateChaptersRunner, stereoBalanceSession: stereoBalanceSession);
                 var loadTask = ViewModel.LoadAsync(filePath);
                 _loadTask = loadTask;
                 await loadTask;
@@ -230,7 +240,7 @@ public sealed partial class PlayerPage : Page
             var resolvedEngine = _engine;
             if (resolvedEngine != null)
             {
-                ViewModel = new PlayerViewModel(resolvedEngine, libraryRepository, preferences: preferences, clipExporter: clipExporter, mediaConverter: mediaConverter, thumbnailProvider: thumbnailProvider, generateChaptersRunner: generateChaptersRunner);
+                ViewModel = new PlayerViewModel(resolvedEngine, libraryRepository, preferences: preferences, clipExporter: clipExporter, mediaConverter: mediaConverter, thumbnailProvider: thumbnailProvider, generateChaptersRunner: generateChaptersRunner, stereoBalanceSession: stereoBalanceSession);
                 var loadTask = ViewModel.LoadCollectionAsync(queue.FilePaths, queue.StartFilePath);
                 _loadTask = loadTask;
                 await loadTask;
@@ -1033,12 +1043,23 @@ public sealed partial class PlayerPage : Page
             SelectComboBoxItemByTag(AudioChannelComboBox, _viewModel.AudioChannel.ToString());
             LoudnessNormalizationToggle.IsOn = _viewModel.IsLoudnessNormalizationEnabled;
             NightModeToggle.IsOn = _viewModel.IsNightModeEnabled;
+
+            StereoBalanceSection.Visibility = _viewModel.CanUseStereoBalance ? Visibility.Visible : Visibility.Collapsed;
+            StereoBalanceSlider.Value = _viewModel.StereoBalanceValue;
+            StereoBalanceValueText.Text = FormatStereoBalance(_viewModel.StereoBalanceValue);
         }
         finally
         {
             _isPopulatingDrawer = false;
         }
     }
+
+    private static string FormatStereoBalance(int value) => value switch
+    {
+        0 => "Center",
+        < 0 => $"{-value}% Left",
+        _ => $"{value}% Right",
+    };
 
     private static void SelectComboBoxItemByTag(ComboBox comboBox, string tag)
     {
@@ -1060,6 +1081,32 @@ public sealed partial class PlayerPage : Page
         {
             await _viewModel.SetAudioChannelAsync(mode);
         }
+    }
+
+    /// <summary>
+    /// Debounces the stereo balance slider (ADR-0011): each value change restarts the secondary
+    /// ffmpeg decode segment, so applying on every drag tick would spawn overlapping processes.
+    /// Commits ~300ms after the user stops moving the slider; the label updates live regardless.
+    /// </summary>
+    private void StereoBalanceSlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+    {
+        if (_isPopulatingDrawer || _viewModel == null) return;
+
+        _pendingStereoBalanceValue = (int)Math.Round(e.NewValue);
+        StereoBalanceValueText.Text = FormatStereoBalance(_pendingStereoBalanceValue);
+
+        _stereoBalanceDebounceTimer ??= new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
+        _stereoBalanceDebounceTimer.Stop();
+        _stereoBalanceDebounceTimer.Tick -= StereoBalanceDebounceTimer_Tick;
+        _stereoBalanceDebounceTimer.Tick += StereoBalanceDebounceTimer_Tick;
+        _stereoBalanceDebounceTimer.Start();
+    }
+
+    private async void StereoBalanceDebounceTimer_Tick(object? sender, object e)
+    {
+        _stereoBalanceDebounceTimer?.Stop();
+        if (_viewModel == null) return;
+        await _viewModel.SetStereoBalanceAsync(_pendingStereoBalanceValue);
     }
 
     private async void LoudnessNormalizationToggle_Toggled(object sender, RoutedEventArgs e)

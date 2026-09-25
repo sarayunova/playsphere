@@ -761,6 +761,33 @@
                                 <ToggleSwitch x:Name="NightModeToggle" Header="Night Mode" Toggled="NightModeToggle_Toggled" />
                             </StackPanel>
                         </Border>
+
+                        <!-- Stereo Balance Section (ADR-0011, Windows-only, audio experimental) -->
+                        <Border x:Name="StereoBalanceSection" BorderBrush="{ThemeResource BrushBorderSubtle}" BorderThickness="0,1,0,0" Margin="0,8,0,0" Padding="0,16,0,0" Visibility="Collapsed">
+                            <StackPanel Spacing="12">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Stereo Balance (experimental)" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource BrushTextPrimary}" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="StereoBalanceValueText" Grid.Column="1" Text="Center" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource BrushAccentBlue}" VerticalAlignment="Center" />
+                                </Grid>
+                                <Slider
+                                    x:Name="StereoBalanceSlider"
+                                    Minimum="-100"
+                                    Maximum="100"
+                                    StepFrequency="1"
+                                    Value="0"
+                                    ValueChanged="StereoBalanceSlider_ValueChanged"
+                                    ToolTipService.ToolTip="Adjust left/right speaker balance. Routes audio through a secondary decode path; a brief gap may occur when seeking." />
+                                <TextBlock
+                                    Text="Experimental: routes audio through a separate decoder while active, so a short (under half a second) gap can occur right after a seek."
+                                    FontSize="11"
+                                    Foreground="{ThemeResource BrushTextMuted}"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
 
                     <!-- Subtitle Tracks Panel -->
