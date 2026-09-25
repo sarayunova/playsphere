@@ -37,4 +37,19 @@ public static class AudioServiceCollectionExtensions
 
         return services;
     }
+
+    /// <summary>
+    /// Registers the stereo-balance secondary audio session (ADR-0011 Stage 2). Not wired into
+    /// <c>PlayerViewModel</c>/the UI yet — this only makes <see cref="StereoBalanceAudioSession"/>
+    /// resolvable for that follow-up slice.
+    /// </summary>
+    public static IServiceCollection AddPlaySphereStereoBalance(this IServiceCollection services, StereoBalanceAudioOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        services.AddSingleton(options ?? new StereoBalanceAudioOptions());
+        services.AddSingleton<StereoBalanceAudioSession>();
+
+        return services;
+    }
 }

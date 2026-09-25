@@ -18,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\PlaySphere.Application\PlaySphere.Application.csproj" />
     <ProjectReference Include="..\PlaySphere.Visualizer\PlaySphere.Visualizer.csproj" />
+    <ProjectReference Include="..\PlaySphere.Media.Export\PlaySphere.Media.Export.csproj" />
   </ItemGroup>
 
 </Project>
