@@ -1991,3 +1991,35 @@ tools/verify-environment.ps1     # dotnet + NuGet checks
     instead of calling the provider. The API-key settings entry point + privacy/consent flow mentioned
     in the earlier "Next up" note was already delivered as part of AI-04 (the "OpenAI API key" card
     on `AiMediaPage`) — that part of the old note is stale/superseded, not still pending.
+- **AI-09 follow-up: Export translated subtitles as SRT (2026-09-25)** (engineering-verified; see
+  manual-QA caveat below). AI-09 above produced translated segments only as an in-app list — there was
+  no way to actually *use* a translation as a subtitle file, which is the whole point of PICKLE.md §38
+  "subtitle translation". Adds an "Export SRT" button next to the Translate status line on
+  `AiMediaPage` that saves the most recently translated segments as a real `.srt` file.
+  - No new domain/application code was needed — this reuses two already-existing, already-tested
+    pieces exactly as designed: `PlaySphere.Subtitles.SubtitleExporter.WriteSrtAsync` (the existing
+    SRT writer used by the player's own subtitle-export feature) and
+    `FilePickerHelper.PickSaveSubtitleFileAsync` (the existing SRT save picker, already used by
+    `PlayerPage`'s subtitle export). `AiMediaPage` now references `PlaySphere.Subtitles` and
+    `PlaySphere.UI.Helpers` to reach them.
+  - `AiMediaPage.xaml.cs`: the page now remembers the most recent successful translation
+    (`_lastTranslation`/`_lastTranslationLanguage`), cleared whenever the file selection changes or a
+    translate attempt fails/errors (so the export button can never save stale segments for a
+    different file or language than what's on screen). `ExportTranslationButton_Click` builds a
+    `SubtitleDocument` from the translated `TranscriptSegment`s (`SnapshotNaming.Sanitize` derives a
+    safe suggested filename from the media title + target language, matching the Phase 7 snapshot/
+    clip-export naming convention) and writes it via the existing exporter — no ffmpeg, no new I/O
+    surface, no new failure modes beyond "file picker cancelled" / "write failed" (both handled,
+    non-fatal).
+  - No new automated tests were added for this slice: both reused pieces
+    (`SubtitleExporter.WriteSrtAsync`, `FilePickerHelper.PickSaveSubtitleFileAsync`) already ship with
+    their own coverage from the pre-existing player subtitle-export feature, and the only new logic
+    here is UI wiring (state tracking + a click handler), consistent with how the codebase has treated
+    prior thin UI-only additions. Verified instead by: full solution Release build (0 errors), the
+    existing 65 AI + `DesignTokenReferenceTests` targeted tests still green (unaffected by this
+    UI-only change), and a smoke launch (confirms the new XAML/button compile and the page loads).
+  - Manual-QA caveat (same limitation as every other AI-media slice): no interactive desktop UI
+    automation here, so the actual save-and-reopen round trip was **not** clicked through. Do a manual
+    pass: translate a file's transcript (AI Media page), click "Export SRT", save it, and open the
+    resulting `.srt` file in a text editor or media player to confirm valid SRT timing/text and that
+    it can be loaded as an external subtitle track.

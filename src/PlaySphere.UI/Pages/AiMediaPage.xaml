@@ -276,11 +276,24 @@
                             IsEnabled="False" />
                     </Grid>
 
-                    <TextBlock
-                        x:Name="TranslateStatusText"
-                        Style="{ThemeResource MutedTextStyle}"
-                        Text="Translate this file's transcript into another language, timestamp for timestamp (6. translate)."
-                        TextWrapping="Wrap" />
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock
+                            x:Name="TranslateStatusText"
+                            Style="{ThemeResource MutedTextStyle}"
+                            Text="Translate this file's transcript into another language, timestamp for timestamp (6. translate)."
+                            TextWrapping="Wrap"
+                            VerticalAlignment="Center" />
+                        <Button
+                            x:Name="ExportTranslationButton"
+                            Grid.Column="1"
+                            Content="Export SRT"
+                            Click="ExportTranslationButton_Click"
+                            IsEnabled="False" />
+                    </Grid>
 
                     <ItemsControl x:Name="TranslatedList">
                         <ItemsControl.ItemTemplate>

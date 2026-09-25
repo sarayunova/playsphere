@@ -9,6 +9,8 @@ using PlaySphere.Application.AI;
 using PlaySphere.Application.Library;
 using PlaySphere.Domain.AI;
 using PlaySphere.Domain.Library;
+using PlaySphere.Subtitles;
+using PlaySphere.UI.Helpers;
 using PlaySphere.UI.Navigation;
 
 namespace PlaySphere.UI.Pages;
@@ -32,6 +34,8 @@ public sealed partial class AiMediaPage : Page
     private bool _summarizerBusy;
     private bool _askBusy;
     private bool _translateBusy;
+    private IReadOnlyList<TranscriptSegment>? _lastTranslation;
+    private string _lastTranslationLanguage = string.Empty;
 
     public AiMediaPage()
     {
@@ -154,6 +158,7 @@ public sealed partial class AiMediaPage : Page
             AskStatusText.Text = "Ask anything about the content. Answers with a timestamp click to jump to that moment (5. ask).";
             TranslatedList.ItemsSource = null;
             TranslateStatusText.Text = "Translate this file's transcript into another language, timestamp for timestamp (6. translate).";
+            ClearTranslationExportState();
             RenderTranscript();
             return;
         }
@@ -164,6 +169,14 @@ public sealed partial class AiMediaPage : Page
         _ = LoadPersistedSummaryAsync();
         TranslatedList.ItemsSource = null;
         TranslateStatusText.Text = "Translate this file's transcript into another language, timestamp for timestamp (6. translate).";
+        ClearTranslationExportState();
+    }
+
+    private void ClearTranslationExportState()
+    {
+        _lastTranslation = null;
+        _lastTranslationLanguage = string.Empty;
+        ExportTranslationButton.IsEnabled = false;
     }
 
     private LibraryMediaItem? Selected =>
@@ -588,22 +601,77 @@ public sealed partial class AiMediaPage : Page
                     .Select(s => new TranscriptRow(FormatTimestamp(s.StartSeconds, s.EndSeconds), s.Text, s.StartSeconds))
                     .ToList();
                 TranslateStatusText.Text = $"{result.Segments.Count} segment(s) translated into {result.TargetLanguage}.";
+                _lastTranslation = result.Segments;
+                _lastTranslationLanguage = result.TargetLanguage ?? targetLanguage;
+                ExportTranslationButton.IsEnabled = true;
             }
             else
             {
                 TranslatedList.ItemsSource = null;
                 TranslateStatusText.Text = result.ErrorMessage ?? "Could not translate. Try again.";
+                _lastTranslation = null;
+                ExportTranslationButton.IsEnabled = false;
             }
         }
         catch (Exception)
         {
             TranslatedList.ItemsSource = null;
             TranslateStatusText.Text = "Could not translate. Try again.";
+            _lastTranslation = null;
+            ExportTranslationButton.IsEnabled = false;
         }
         finally
         {
             _translateBusy = false;
             UpdateAiActionEnablement();
+        }
+    }
+
+    private async void ExportTranslationButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_lastTranslation is not { Count: > 0 })
+        {
+            return;
+        }
+
+        var stem = SnapshotNaming.Sanitize(Selected is not null ? DisplayName(Selected) : null);
+        var languageStem = SnapshotNaming.Sanitize(_lastTranslationLanguage);
+        var suggested = string.IsNullOrWhiteSpace(stem)
+            ? $"PlaySphere-translation-{(string.IsNullOrWhiteSpace(languageStem) ? "srt" : languageStem)}.srt"
+            : $"{stem.Replace(' ', '-')}-{(string.IsNullOrWhiteSpace(languageStem) ? "translated" : languageStem.Replace(' ', '-'))}.srt";
+
+        string? path;
+        try
+        {
+            path = await FilePickerHelper.PickSaveSubtitleFileAsync(suggested);
+        }
+        catch (Exception)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        var cues = _lastTranslation
+            .Select((s, i) => new SubtitleCue(
+                i + 1,
+                TimeSpan.FromSeconds(Math.Max(0, s.StartSeconds)),
+                TimeSpan.FromSeconds(Math.Max(s.StartSeconds + 0.001, s.EndSeconds)),
+                s.Text))
+            .ToList();
+        var document = new SubtitleDocument(SubtitleFormat.Srt, cues);
+
+        try
+        {
+            await SubtitleExporter.WriteSrtAsync(document, path);
+            TranslateStatusText.Text = $"Saved translated subtitles to {path}.";
+        }
+        catch (Exception)
+        {
+            TranslateStatusText.Text = "Could not save the SRT file. Try again.";
         }
     }
 
