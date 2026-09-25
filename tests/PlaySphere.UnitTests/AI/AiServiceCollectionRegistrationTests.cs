@@ -40,6 +40,17 @@ public class AiServiceCollectionRegistrationTests
     }
 
     [Fact]
+    public void AddPlaySphereAi_registers_the_translation_runner()
+    {
+        var services = new ServiceCollection();
+        services.AddPlaySphereAi(new AiServiceOptions());
+
+        var descriptor = services.FirstOrDefault(d => d.ServiceType == typeof(ITranslateMediaRunner));
+        Assert.NotNull(descriptor);
+        Assert.Equal(typeof(TranslateMediaRunner), descriptor?.ImplementationType);
+    }
+
+    [Fact]
     public void AddPlaySphereAi_defaults_options_when_none_provided()
     {
         var services = new ServiceCollection();

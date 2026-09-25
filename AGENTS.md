@@ -1933,3 +1933,61 @@ tools/verify-environment.ps1     # dotnet + NuGet checks
     was added/removed. No automated test coverage (native window-chrome/taskbar behavior, not
     unit-testable) — verified by an actual screenshot of the running app's taskbar entry, zoomed in
     to confirm the icon pixel-for-pixel.
+- **AI-09 (Subtitle translation) COMPLETE (2026-09-25)** (engineering-verified; see manual-QA
+  caveat below). Closes the last "not started" item noted in the earlier Phase 9 entry above. Follows
+  the exact orchestration-seam pattern already used by AI-06/07/08
+  (`IGenerateChaptersRunner`/`ISummarizeMediaRunner`/`IAskMediaRunner`): translate a cataloged file's
+  persisted transcript into any target language, segment-for-segment, with the original timestamps
+  preserved verbatim (PICKLE.md §38 "subtitle translation").
+  - `IAiMediaService` gained `TranslateAsync(Transcript, string targetLanguage, CancellationToken)` →
+    `IReadOnlyList<TranscriptSegment>`. `OpenAiMediaService.TranslateAsync` builds a chat-completion
+    prompt instructing the model to return ONLY a JSON array of `{start, end, text}` with "start"/"end"
+    copied verbatim from the original segment and only "text" translated; `ParseTranslatedSegments`
+    parses it defensively (untrusted input, §43) via the same `ParseJsonArray` helper the
+    chapters/ask parsers already use.
+  - New `Domain.AI.TranslateMediaResult(bool Success, string? ErrorMessage,
+    IReadOnlyList<TranscriptSegment>? Segments, string? TargetLanguage)` + `Fail(msg)`.
+  - New `Application.AI.ITranslateMediaRunner` (the UI-facing seam) with a static
+    `ArtifactKeyFor(targetLanguage)` helper (`"translation:" + lowercased/trimmed language`, so the
+    same language always round-trips to the same persisted-artifact key — the AI-07 `summary` artifact
+    precedent extended to be per-language).
+  - `PlaySphere.AI.TranslateMediaRunner` chains: file-exists check → cataloged-item lookup via
+    `FindByPathAsync` → persisted-transcript load via `GetTranscriptAsync` (both with the established
+    "transcribe first" / "add to library first" guidance on failure) → `IAiMediaService.TranslateAsync`
+    → persist the returned segments as a JSON artifact via `SaveArtifactAsync` (best-effort — a
+    persistence failure still returns the in-memory translation, matching the summarizer's contract).
+    Registered as a singleton in `AddPlaySphereAi`.
+  - `AiMediaPage` UI: a new "Translate subtitles" card (free-text target-language box + Translate
+    button + status line + a clickable-timestamp segment list, reusing the existing `TranscriptRow`
+    shape and card template) sits after the Ask-the-Media section. Enabled/disabled alongside the
+    other AI actions via the existing `UpdateAiActionEnablement()` (extended with a `_translateBusy`
+    flag) and gated on the same API-key consent dialog (`ConfirmProviderNeeded`) the summary/ask
+    actions already use. Deliberately does **not** auto-reload a persisted translation on file
+    selection (unlike the summary, which has one canonical artifact) — a translation is keyed by
+    target language, so there is no single "the" translation to restore without asking which
+    language first; the user re-runs Translate to see a past result for a given language.
+  - Tests: 9 new `TranslateMediaRunnerTests` (missing file, blank language, non-cataloged file,
+    no-transcript-yet, provider failure, empty-result failure, success passes the exact transcript/
+    language through and persists the artifact under the per-language key, persistence-failure-is-
+    best-effort-but-still-succeeds, library-lookup failure) + 3 new `OpenAiMediaServiceTests`
+    (parses segments preserving timestamps, ignores malformed JSON entries, blank language throws
+    `AiException`) + 1 new `AiServiceCollectionRegistrationTests` descriptor test (mirrors the existing
+    `registers_the_transcription_runner` pattern). The four pre-existing `FakeAiService` test doubles
+    in `SummarizeMediaRunnerTests`/`AskMediaRunnerTests`/`GenerateChaptersRunnerTests`/
+    `TranscribeMediaRunnerTests` each needed a `TranslateAsync` stub added to keep implementing
+    `IAiMediaService` after the interface grew this member. Full solution Release build 0 errors (only
+    the pre-existing xUnit1030/xUnit2013 warnings, none in new files); targeted run
+    `PlaySphere.UnitTests.AI` + `DesignTokenReferenceTests` = 65/65 green (up from 51 AI tests before
+    this ticket); `tools\run-app-smoke.ps1` OK (compile-time XAML validation for the new page section
+    passed).
+  - Manual-QA caveat (same limitation as every other AI-media slice): no interactive desktop UI
+    automation here, so the new card's target-language box, Translate button, consent dialog and
+    resulting segment list were **not** clicked through — only the runner unit tests (fake provider +
+    fake repo persistence), the HTTP-parsing tests against a scripted `OpenAiMediaService`, build +
+    tests, DesignToken guard, and smoke launch. Do a manual pass: transcribe a cataloged file (AI
+    Media page), type a target language into the new "Translate subtitles" box, click Translate,
+    confirm the returned segments read as a translation with the *same* timestamps as the original
+    transcript, and that a file with no transcript yet (or no API key) reports the honest guidance
+    instead of calling the provider. The API-key settings entry point + privacy/consent flow mentioned
+    in the earlier "Next up" note was already delivered as part of AI-04 (the "OpenAI API key" card
+    on `AiMediaPage`) — that part of the old note is stale/superseded, not still pending.

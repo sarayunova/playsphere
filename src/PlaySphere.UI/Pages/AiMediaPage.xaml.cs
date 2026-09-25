@@ -19,6 +19,7 @@ public sealed partial class AiMediaPage : Page
     private readonly ITranscribeMediaRunner? _runner;
     private readonly ISummarizeMediaRunner? _summaryRunner;
     private readonly IAskMediaRunner? _askRunner;
+    private readonly ITranslateMediaRunner? _translateRunner;
     private readonly IAiCredentialStore? _store;
 
     private readonly List<LibraryMediaItem> _catalog = new();
@@ -30,6 +31,7 @@ public sealed partial class AiMediaPage : Page
     private bool _busy;
     private bool _summarizerBusy;
     private bool _askBusy;
+    private bool _translateBusy;
 
     public AiMediaPage()
     {
@@ -39,6 +41,7 @@ public sealed partial class AiMediaPage : Page
         _runner = PlaySphereServices.GetOptional<ITranscribeMediaRunner>();
         _summaryRunner = PlaySphereServices.GetOptional<ISummarizeMediaRunner>();
         _askRunner = PlaySphereServices.GetOptional<IAskMediaRunner>();
+        _translateRunner = PlaySphereServices.GetOptional<ITranslateMediaRunner>();
         _store = PlaySphereServices.GetOptional<IAiCredentialStore>();
 
         if (_repository is null || _runner is null || _store is null)
@@ -59,6 +62,13 @@ public sealed partial class AiMediaPage : Page
             AskButton.IsEnabled = false;
             AskBox.IsEnabled = false;
             AskStatusText.Text = "Ask is unavailable (missing service).";
+        }
+
+        if (_translateRunner is null)
+        {
+            TranslateButton.IsEnabled = false;
+            TranslateLanguageBox.IsEnabled = false;
+            TranslateStatusText.Text = "Translation is unavailable (missing service).";
         }
 
         Loaded += AiMediaPage_Loaded;
@@ -142,6 +152,8 @@ public sealed partial class AiMediaPage : Page
             SummaryStatusText.Text = "Summarize this file from its transcript (4. summary).";
             AnswerList.ItemsSource = null;
             AskStatusText.Text = "Ask anything about the content. Answers with a timestamp click to jump to that moment (5. ask).";
+            TranslatedList.ItemsSource = null;
+            TranslateStatusText.Text = "Translate this file's transcript into another language, timestamp for timestamp (6. translate).";
             RenderTranscript();
             return;
         }
@@ -150,6 +162,8 @@ public sealed partial class AiMediaPage : Page
         _mediaItemId = selected.Id;
         _ = LoadPersistedTranscriptAsync();
         _ = LoadPersistedSummaryAsync();
+        TranslatedList.ItemsSource = null;
+        TranslateStatusText.Text = "Translate this file's transcript into another language, timestamp for timestamp (6. translate).";
     }
 
     private LibraryMediaItem? Selected =>
@@ -179,10 +193,12 @@ public sealed partial class AiMediaPage : Page
 
     private void UpdateAiActionEnablement()
     {
-        var available = !_busy && !_summarizerBusy && !_askBusy && Selected is not null;
+        var available = !_busy && !_summarizerBusy && !_askBusy && !_translateBusy && Selected is not null;
         GenerateSummaryButton.IsEnabled = available;
         AskButton.IsEnabled = available;
         AskBox.IsEnabled = available;
+        TranslateButton.IsEnabled = available && _translateRunner is not null;
+        TranslateLanguageBox.IsEnabled = available && _translateRunner is not null;
     }
 
     private async void ApiKeyButton_Click(object sender, RoutedEventArgs e)
@@ -530,6 +546,64 @@ public sealed partial class AiMediaPage : Page
             _askBusy = false;
             UpdateAiActionEnablement();
             AskButton.IsEnabled = true;
+        }
+    }
+
+    private async void TranslateButton_Click(object sender, RoutedEventArgs e)
+    {
+        await RunTranslateAsync(TranslateLanguageBox.Text);
+    }
+
+    private async void TranslateLanguageBox_KeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key == Windows.System.VirtualKey.Enter && TranslateButton.IsEnabled)
+        {
+            await RunTranslateAsync(TranslateLanguageBox.Text);
+        }
+    }
+
+    private async Task RunTranslateAsync(string targetLanguage)
+    {
+        targetLanguage = (targetLanguage ?? string.Empty).Trim();
+        if (_translateRunner is null || Selected is null || targetLanguage.Length == 0)
+        {
+            return;
+        }
+
+        if (ConfirmProviderNeeded() is false)
+        {
+            return;
+        }
+
+        _translateBusy = true;
+        UpdateAiActionEnablement();
+        TranslateStatusText.Text = $"Translating into {targetLanguage}…";
+
+        try
+        {
+            var result = await _translateRunner.TranslateAsync(_mediaPath, targetLanguage);
+            if (result.Success && result.Segments is { Count: > 0 })
+            {
+                TranslatedList.ItemsSource = result.Segments
+                    .Select(s => new TranscriptRow(FormatTimestamp(s.StartSeconds, s.EndSeconds), s.Text, s.StartSeconds))
+                    .ToList();
+                TranslateStatusText.Text = $"{result.Segments.Count} segment(s) translated into {result.TargetLanguage}.";
+            }
+            else
+            {
+                TranslatedList.ItemsSource = null;
+                TranslateStatusText.Text = result.ErrorMessage ?? "Could not translate. Try again.";
+            }
+        }
+        catch (Exception)
+        {
+            TranslatedList.ItemsSource = null;
+            TranslateStatusText.Text = "Could not translate. Try again.";
+        }
+        finally
+        {
+            _translateBusy = false;
+            UpdateAiActionEnablement();
         }
     }
 

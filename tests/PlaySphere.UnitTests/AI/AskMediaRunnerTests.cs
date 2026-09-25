@@ -39,6 +39,7 @@ public class AskMediaRunnerTests : IDisposable
         public Task<Transcript> TranscribeAudioAsync(string audioFilePath, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<IReadOnlyList<AiChapter>> GenerateChaptersAsync(Transcript transcript, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<AiSummary> SummarizeAsync(Transcript transcript, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<IReadOnlyList<TranscriptSegment>> TranslateAsync(Transcript transcript, string targetLanguage, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 
     private sealed class FakeRepo : IMediaLibraryRepository

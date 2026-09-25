@@ -128,6 +128,27 @@ public sealed class OpenAiMediaService : IAiMediaService
         return ChatJsonAsync(prompt, ParseKeyPoints, cancellationToken);
     }
 
+    public Task<IReadOnlyList<TranscriptSegment>> TranslateAsync(Transcript transcript, string targetLanguage, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(transcript);
+        if (string.IsNullOrWhiteSpace(targetLanguage))
+        {
+            throw new AiException("A target language is required to translate.");
+        }
+
+        var prompt = new StringBuilder("Translate the following transcript into ")
+            .Append(targetLanguage.Trim())
+            .Append(". Produce a JSON array of segments. Each segment MUST have exactly three fields: ")
+            .Append("\"start\" (number, the EXACT original start second, copied verbatim), ")
+            .Append("\"end\" (number, the EXACT original end second, copied verbatim), and ")
+            .Append("\"text\" (string, the translated text only). ")
+            .Append("Never invent, shift or renumber timestamps — one output segment per input segment, in order. ")
+            .Append("Return ONLY a JSON array, for example: [{\"start\":0,\"end\":2.5,\"text\":\"...\"}].\n\nTranscript:\n")
+            .Append(FormatTranscript(transcript))
+            .ToString();
+        return ChatJsonAsync(prompt, ParseTranslatedSegments, cancellationToken);
+    }
+
     private async Task<T> ChatJsonAsync<T>(string prompt, Func<string, T> parser, CancellationToken cancellationToken)
     {
         var text = await ChatTextInternalAsync(prompt, cancellationToken).ConfigureAwait(false);
@@ -352,6 +373,23 @@ public sealed class OpenAiMediaService : IAiMediaService
             points.Add(new AiKeyPoint(content.Trim(), start));
         }
         return points;
+    }
+
+    private static IReadOnlyList<TranscriptSegment> ParseTranslatedSegments(string text)
+    {
+        var segments = new List<TranscriptSegment>();
+        foreach (var item in ParseJsonArray(text))
+        {
+            var translated = GetString(item, "text", string.Empty);
+            if (string.IsNullOrWhiteSpace(translated))
+            {
+                continue;
+            }
+            var start = GetDouble(item, "start", 0);
+            var end = GetDouble(item, "end", start);
+            segments.Add(new TranscriptSegment(start, end, translated.Trim()));
+        }
+        return segments;
     }
 
     private static List<JsonElement> ParseJsonArray(string text)

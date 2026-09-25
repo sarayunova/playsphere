@@ -195,6 +195,48 @@ public class OpenAiMediaServiceTests
     }
 
     [Fact]
+    public async Task TranslateAsync_parses_segments_preserving_timestamps()
+    {
+        var handler = ScriptedHttpHandler.Json(
+            """{"choices":[{"message":{"role":"assistant","content":"[{\"start\":0,\"end\":2.5,\"text\":\"Hello world.\"},{\"start\":2.5,\"end\":5.0,\"text\":\"Second sentence.\"}]"}}]}""");
+        var svc = Create(handler);
+
+        var transcript = new Transcript(
+            new[] { new TranscriptSegment(0, 2.5, "Bonjour le monde."), new TranscriptSegment(2.5, 5.0, "Deuxième phrase.") }, "fr");
+
+        var segments = await svc.TranslateAsync(transcript, "English").ConfigureAwait(false);
+
+        Assert.Equal(2, segments.Count);
+        Assert.Equal("Hello world.", segments[0].Text);
+        Assert.Equal(0, segments[0].StartSeconds);
+        Assert.Equal(2.5, segments[0].EndSeconds);
+        Assert.Equal("Second sentence.", segments[1].Text);
+        Assert.Equal(HttpMethod.Post, handler.LastRequest!.Method);
+        Assert.EndsWith("/v1/chat/completions", handler.LastRequest!.RequestUri!.PathAndQuery);
+    }
+
+    [Fact]
+    public async Task TranslateAsync_ignores_malformed_entries()
+    {
+        var handler = ScriptedHttpHandler.Json(
+            """{"choices":[{"message":{"role":"assistant","content":"[{\"start\":5},{\"start\":5,\"end\":6,\"text\":\"OK\"}]"}}]}""");
+        var svc = Create(handler);
+
+        var segments = await svc.TranslateAsync(new Transcript(Array.Empty<TranscriptSegment>(), null), "German").ConfigureAwait(false);
+
+        var segment = Assert.Single(segments);
+        Assert.Equal("OK", segment.Text);
+    }
+
+    [Fact]
+    public async Task TranslateAsync_blank_language_throws()
+    {
+        var svc = Create(ScriptedHttpHandler.Json("{}"));
+        await Assert.ThrowsAsync<AiException>(
+            () => svc.TranslateAsync(new Transcript(Array.Empty<TranscriptSegment>(), null), "   "));
+    }
+
+    [Fact]
     public async Task Cancellation_is_propagated()
     {
         var svc = Create(HangingHttpHandler.Instance);

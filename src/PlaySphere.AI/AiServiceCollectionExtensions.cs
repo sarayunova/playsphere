@@ -28,6 +28,7 @@ public static class AiServiceCollectionExtensions
         services.AddSingleton<IGenerateChaptersRunner, GenerateChaptersRunner>();
         services.AddSingleton<ISummarizeMediaRunner, SummarizeMediaRunner>();
         services.AddSingleton<IAskMediaRunner, AskMediaRunner>();
+        services.AddSingleton<ITranslateMediaRunner, TranslateMediaRunner>();
 
         return services;
     }

@@ -41,4 +41,11 @@ public interface IAiMediaService
     /// <see cref="AiKeyPoint.StartSeconds"/> is present.
     /// </summary>
     Task<IReadOnlyList<AiKeyPoint>> AskAsync(Transcript transcript, string question, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Translates every segment's text into <paramref name="targetLanguage"/>, returning segments with
+    /// the exact original <see cref="TranscriptSegment.StartSeconds"/>/<see cref="TranscriptSegment.EndSeconds"/>
+    /// (AI-09, PICKLE.md §38 "subtitle translation"). Never invents or shifts timestamps.
+    /// </summary>
+    Task<IReadOnlyList<TranscriptSegment>> TranslateAsync(Transcript transcript, string targetLanguage, CancellationToken cancellationToken = default);
 }

@@ -56,6 +56,8 @@ public class TranscribeMediaRunnerTests : IDisposable
             => throw new NotSupportedException();
         public Task<IReadOnlyList<AiKeyPoint>> AskAsync(Transcript transcript, string question, CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
+        public Task<IReadOnlyList<TranscriptSegment>> TranslateAsync(Transcript transcript, string targetLanguage, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
     }
 
     private sealed class FakeRepo : IMediaLibraryRepository
