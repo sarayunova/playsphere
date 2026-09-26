@@ -2117,3 +2117,47 @@ tools/verify-environment.ps1     # dotnet + NuGet checks
     mechanism at once and finding out only from a crash report. ADR-0012 itself remains architecturally
     sound (the "why" is confirmed by code, not guessed) — only this specific hiding mechanism is
     implicated.
+- **Beta build produced (2026-09-26).** A signed MSIX beta (self-signed dev cert, ADR-0010) was hand-
+  built and delivered for the user's own machine: `tools/build-release.ps1 -SkipTests -Package` compiled
+  cleanly, but its own post-packaging `Get-ChildItem`/`Join-Path` step failed in this dev environment
+  (a path-resolution bug independent of the actual MSIX build — the `.msix` itself was produced fine at
+  `src\PlaySphere.App\bin\Release\AppPackagesPlaySphere.App_0.10.0.0_x64_Test\PlaySphere.App_0.10.0.0_x64.msix`).
+  Worked around by locating `signtool.exe` and signing the already-produced `.msix` directly with
+  `tools\dev-signing-cert.pfx` (password `devcert`), then copying `dev-signing-cert.cer` alongside it so
+  `Add-AppDevPackage.ps1` can auto-trust it on install. **If this script failure recurs next session,
+  the fix belongs in `tools/build-release.ps1`'s `$packageDir`/`Get-ChildItem` step, not in a manual
+  workaround each time** — likely the same class of `$PSScriptRoot`-under-a-spaced-path issue seen
+  earlier this session with the top-level `powershell -File` invocation (direct `& .\tools\...ps1`
+  dot-invocation avoided that one, but a similar problem surfaced one level deeper in the script).
+  Build state shipped in this beta: ADR-0011 (stereo balance) fully working per user confirmation;
+  ADR-0012 reverted (video-surface persistence bug fix attempt), so the pre-existing "returning to the
+  player from Home resets video to the start" limitation is present in this beta as before — not new,
+  not worse, just still there.
+- **Post-beta-launch punch list (requested by the user, to pick up next session):** in priority order —
+  1. **Certificate-trust friction is a real blocker for testers who aren't the machine owner.** The
+     self-signed dev cert (ADR-0010) means every beta tester must manually trust a certificate before
+     the app runs. Fine for a handful of trusted testers; a real blocker for anyone wider. ADR-0010 left
+     the real signing-certificate strategy (paid CA vs. Azure Trusted Signing vs. Store) as an explicit
+     open decision — needs to actually be made once the beta group grows.
+  2. **No update mechanism is wired yet.** `tools/generate-appinstaller.ps1` exists but no
+     `.appinstaller` file has ever been generated or hosted (checked this session — none found in the
+     repo). Right now every new beta build is a fresh manual reinstall for every tester; no in-place
+     update path exists.
+  3. **The clean-machine install/uninstall checklist has never actually been run.**
+     `docs/testing/clean-machine-install-checklist.md` exists (Phase 10 deliverable) but per this
+     project's own standing limitation (no second machine/VM in this dev environment) it has never been
+     executed for real. Needs a human on an actual second/clean Windows machine before the install
+     experience can be trusted for anyone beyond this one dev machine.
+  4. **The video reset-to-start-on-return bug is still open** (see the ADR-0012 entry directly above) —
+     testers will hit this on every "go Home, come back" during video playback.
+  5. **The large standing manual-QA backlog in AGENTS.md is still mostly unclicked** (playlists,
+     visualizer presets, the full AI chain, Phase 7 tools, etc.) — real beta usage is exactly what will
+     surface which of these are actually fine vs. actually broken, so this is a good time to start
+     working through that list against real tester reports rather than guessing priority.
+  6. **No feedback/crash-collection loop exists for testers.** `docs/security/crash-diagnostics.md`
+     documents the local `crash.log`/`libvlc.log`/`visualizer-audio.log` files, but there is no mechanism
+     for a tester to *send* those to the developer — right now a tester hitting a crash only helps if
+     they manually find and share the log file themselves. Of everything on this list, the user's own
+     stated view was that **#6 (a way for testers to report problems) and #1 (cert-trust friction)**
+     matter most before handing this to anyone who isn't the developer — everything else (especially
+     #5) is better prioritized *from* the feedback #6 would provide, rather than guessed at now.
