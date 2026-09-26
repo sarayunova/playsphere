@@ -2053,3 +2053,67 @@ tools/verify-environment.ps1     # dotnet + NuGet checks
     verify or extend, or (c) ask for another small, self-contained code slice to be picked — at this
     point almost everything remaining is manual verification or gated on a product/architecture call,
     not a ready-to-code ticket.
+- **ADR-0011 (stereo balance) fully implemented, engineering-verified (2026-09-26).** Stages 1-2c all
+  landed: `StereoBalance`/`StereoBalanceGain` pure gain math (Domain.Media), `StereoBalanceSyncPolicy`
+  drift-correction decision, `StereoBalanceAudioArgs` ffmpeg `pan`/seek/pipe argument builder
+  (Media.Export), the live `StereoBalanceAudioSession` (spawns the ffmpeg subprocess, pumps stdout PCM
+  into a NAudio `WasapiPlayerBuilder`-built `WasapiPlayer` — `WasapiOut` is obsolete in this NAudio 3
+  version), `IStereoBalanceAudioSession` in `Application.Media` (UI/VM depend on the interface, never
+  the concrete session, mirroring `IVisualizerAudioSource`), and `PlayerViewModel.SetStereoBalanceAsync`
+  wiring (mutes/unmutes the engine's own output around the secondary path, resets on every `LoadAsync`
+  and on `Dispose`, and `SeekTargetAsync` fire-and-forgets a resync notification so a user seek restarts
+  the ffmpeg segment without stalling the timeline). A debounced (~300ms) "Stereo Balance (experimental)"
+  slider sits in `PlayerPage`'s Audio Tracks drawer, visible only for local (non-stream) media. **User
+  confirmed working correctly.** No automated test exercises a live audio device (per the documented
+  precedent that a real NAudio-device test once hung this suite under xUnit parallelism) — verification
+  was build + the 37 pure unit/integration tests + user manual QA.
+- **ADR-0012 (persistent video surface across navigation) — attempted, CAUSED A CRASH, REVERTED
+  (2026-09-26).** User-reported bug: returning to `PlayerPage` from `HomePage` (via the "Now Playing"
+  bar) during video playback reset the video to the start and looked paused. Root-caused (not guessed)
+  via code reading: WinUI's `Frame` navigation tears down/recreates `PlayerPage` on every navigation, so
+  its `VideoSurfaceHost` (wrapping libVLC's `VideoView`, a `SwapChainPanel`) is a brand-new native
+  swap-chain every time, which `LibVlcPlaybackEngine.AttachVideoSurfaceAsync` detects as changed
+  swap-chain options and triggers `RebuildRendererCore` — whose best-effort position carry is silently
+  dropped by libVLC pre-`Play()` (an already-exhausted, documented investigation: every attempt to force
+  it further, e.g. `:start-time` or a deferred `Time` set in the native `Playing` callback, previously
+  reproduced a real `AccessViolationException`). ADR-0012 proposed the *correct* fix at the *right*
+  layer: keep the same `VideoSurfaceHost` instance alive across navigation (owned by `AppShell`,
+  borrowed/re-parented by `PlayerPage`) so `AttachVideoSurfaceAsync`'s existing swap-chain-options-equal
+  no-op path is hit on ordinary "go Home and back" navigation and the rebuild never fires at all —
+  verified by code reading that `DetachVideoSurfaceAsync` never resets `_activeSwapChainOptions`, so this
+  mechanism is sound in principle.
+  - **Implementation (commit `a0584c8`, reverted by `cd283c4`):** `AppShell` gained a static `Current` +
+    `VideoHost` property and an `AttachVideoHostTo(Panel)`/`ParkVideoHost()` re-parenting API, backed by
+    a `VideoSurfaceHost` declared once in `AppShell.xaml` inside a **`Width="0" Height="0" Opacity="0"`**
+    parking `Grid` (to keep it invisible/non-hit-testable while not on the player page).
+    `PlayerPage.xaml` replaced its own `<controls:VideoSurfaceHost x:Name="VideoHost">` with an empty
+    `VideoHostSlot` `Grid`, and `PlayerPage.xaml.cs` borrowed/returned the shared instance in
+    `OnNavigatedTo`/`Page_Unloaded`.
+  - **What broke:** build was clean (0 errors), `DesignTokenReferenceTests` and all 123
+    `PlayerViewModelTests` passed, and `VideoSurfaceTests`' 4 failures were confirmed via a `git stash`
+    A/B to be pre-existing host-specific native-timing flakiness (identical failures with and without
+    this change) — so nothing in the *automatable* verification caught the regression. On the user's
+    real machine: video stopped rendering (audio kept playing — a separate native path) and the app
+    **crashed a few seconds into playback**.
+  - **Suspected root cause (not yet confirmed — reverted before further investigation):** a
+    `SwapChainPanel`-backed control (libVLC's `VideoView` is one) very likely needs a real, non-zero size
+    at first native initialization to build a valid Direct3D swap chain. Initializing it at the parking
+    spot's `0×0` size, then later resizing it up to fill the real video area once re-parented into
+    `PlayerPage`'s `Stretch`-sized `VideoHostSlot`, plausibly left it with a broken/invalid swap chain —
+    consistent with "video surface produces nothing, then crashes shortly after" rather than an
+    immediate failure. **This is a hypothesis, not a verified fact** — it was not tested further because
+    this environment cannot run/observe the app interactively, and shipping another guess into a
+    confirmed crash path without a human able to test each step immediately was judged too risky.
+  - **Reverted via `git revert --no-edit a0584c8` → commit `cd283c4`.** Build re-verified clean (0
+    errors) after the revert. Current (reverted) state: the pre-ADR-0012 behavior is restored — video
+    playback works, but returning to the player from Home still resets to the start (the original,
+    accepted, non-crashing limitation).
+  - **If picking this back up:** do NOT re-land the same 0×0-parking-spot mechanism without testing.
+    Suggested safer approach for next time: park the shared `VideoSurfaceHost` at a real, reasonably
+    large size (or keep it inside a `Visibility="Collapsed"` parent instead of a zero-sized one — a
+    collapsed panel skips layout/render entirely rather than sizing its child to zero, which may avoid
+    ever handing the `SwapChainPanel` a 0×0 initial size) and — critically — test after *every single
+    small change* on a real machine before proceeding to the next, rather than landing the whole
+    mechanism at once and finding out only from a crash report. ADR-0012 itself remains architecturally
+    sound (the "why" is confirmed by code, not guessed) — only this specific hiding mechanism is
+    implicated.
