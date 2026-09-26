@@ -1,7 +1,8 @@
 <Page
     x:Class="PlaySphere.UI.Shell.AppShell"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:PlaySphere.UI.Controls">
 
     <NavigationView
         x:Name="RootNavigation"
@@ -26,6 +27,24 @@
             </Grid.RowDefinitions>
 
             <Frame x:Name="ContentFrame" Grid.Row="0" />
+
+            <!-- Shell-owned, app-lifetime video render surface (ADR-0012). PlayerPage borrows this
+                 single VideoSurfaceHost instance instead of constructing its own, so ordinary
+                 navigation away from and back to the player never creates a new native swap-chain
+                 and therefore never forces a renderer rebuild (see AttachVideoSurfaceAsync's
+                 swap-chain-options-equal no-op path). Parked here (zero-size, non-hit-testable)
+                 whenever PlayerPage isn't the current view. -->
+            <Grid
+                x:Name="VideoHostParkingSpot"
+                Grid.Row="0"
+                Width="0"
+                Height="0"
+                Opacity="0"
+                IsHitTestVisible="False"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top">
+                <controls:VideoSurfaceHost x:Name="SharedVideoHost" />
+            </Grid>
 
             <!-- Persistent "now playing" bar: shown whenever media is loaded in the (singleton,
                  always-live) playback engine but the player page itself isn't the current view, so

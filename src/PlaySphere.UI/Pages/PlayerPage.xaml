@@ -25,10 +25,12 @@
             DoubleTapped="VideoSurface_DoubleTapped"
             PointerPressed="VideoSurface_PointerPressed">
             <Grid>
-                <!-- Real video render target (PlaySphere-owned wrapper around libVLC's VideoView). -->
-                <controls:VideoSurfaceHost
-                    x:Name="VideoHost"
-                    Initialized="VideoHost_Initialized"
+                <!-- Real video render target: an empty slot the shell's single, app-lifetime
+                     VideoSurfaceHost is re-parented into on navigation (ADR-0012), instead of this
+                     page constructing its own (which used to force a native swap-chain rebuild —
+                     and the reset-to-start bug that came with it — on every return to the player). -->
+                <Grid
+                    x:Name="VideoHostSlot"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch" />
 
