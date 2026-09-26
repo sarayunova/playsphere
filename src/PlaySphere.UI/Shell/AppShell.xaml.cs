@@ -2,7 +2,6 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using PlaySphere.Domain.Media;
 using PlaySphere.Playback.Abstractions;
-using PlaySphere.UI.Controls;
 using PlaySphere.UI.Navigation;
 using PlaySphere.UI.Services;
 
@@ -17,20 +16,9 @@ public sealed partial class AppShell : Page
     private readonly IWindowService? _windowService;
     private readonly IMediaPlaybackEngine? _engine;
 
-    /// <summary>
-    /// The single, app-lifetime shell instance (this app has exactly one window/shell). Lets
-    /// <see cref="Pages.PlayerPage"/> reach the shared <see cref="VideoHost"/> without a project-level
-    /// dependency between the two (ADR-0012).
-    /// </summary>
-    public static AppShell? Current { get; private set; }
-
-    /// <summary>The shell-owned, app-lifetime video render surface (ADR-0012).</summary>
-    public VideoSurfaceHost VideoHost => SharedVideoHost;
-
     public AppShell()
     {
         InitializeComponent();
-        Current = this;
         _navigation = new NavigationService();
         _windowService = PlaySphereServices.GetOptional<IWindowService>();
         _engine = PlaySphereServices.GetOptional<IMediaPlaybackEngine>();
@@ -173,26 +161,4 @@ public sealed partial class AppShell : Page
             _navigation.Navigate(ContentFrame, route);
         }
     }
-
-    /// <summary>
-    /// Re-parents the shared <see cref="VideoHost"/> into <paramref name="target"/> (ADR-0012).
-    /// Safe to call repeatedly with the same target; removes it from wherever it currently lives
-    /// first (its parking spot, or a previous <c>PlayerPage</c> instance's slot) so a control can
-    /// only ever have one visual parent.
-    /// </summary>
-    public void AttachVideoHostTo(Panel target)
-    {
-        ArgumentNullException.ThrowIfNull(target);
-        if (SharedVideoHost.Parent is Panel currentParent && !ReferenceEquals(currentParent, target))
-        {
-            currentParent.Children.Remove(SharedVideoHost);
-        }
-        if (!target.Children.Contains(SharedVideoHost))
-        {
-            target.Children.Add(SharedVideoHost);
-        }
-    }
-
-    /// <summary>Returns the shared <see cref="VideoHost"/> to its parking spot (called when <c>PlayerPage</c> unloads).</summary>
-    public void ParkVideoHost() => AttachVideoHostTo(VideoHostParkingSpot);
 }

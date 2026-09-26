@@ -21,7 +21,6 @@ using PlaySphere.UI.Helpers;
 using PlaySphere.UI.Models;
 using PlaySphere.UI.Navigation;
 using PlaySphere.UI.Services;
-using PlaySphere.UI.Shell;
 using PlaySphere.UI.ViewModels;
 using PlaySphere.UI.Visualizer;
 using Windows.System;
@@ -49,7 +48,6 @@ public sealed partial class PlayerPage : Page
     private bool _visualizerEnabled;
     private readonly UISettings _uiSettings = new();
     private bool _videoSurfaceAttached;
-    private VideoSurfaceHost? _videoHost;
     private bool _isUpdatingSliderFromVm;
     private bool _isDraggingSlider;
     private bool _isDraggingSubtitleSlider;
@@ -165,16 +163,6 @@ public sealed partial class PlayerPage : Page
             _ = _engine?.DetachVideoSurfaceAsync();
         }
 
-        // Return the shared surface to the shell's parking spot (ADR-0012) rather than letting it
-        // be torn down with this page — its identity (and therefore its swap-chain options) must
-        // survive so the next PlayerPage instance's re-attach is recognized as a no-op rebuild.
-        if (_videoHost != null)
-        {
-            _videoHost.Initialized -= VideoHost_Initialized;
-            AppShell.Current?.ParkVideoHost();
-            _videoHost = null;
-        }
-
         // Stop the visualizer's audio source (ADR-0009: WASAPI device-loopback on Windows, so
         // leaving the page stops the capture but never silences libVLC's normal speaker output).
         if (_visualizerEnabled)
@@ -205,18 +193,6 @@ public sealed partial class PlayerPage : Page
     protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
-
-        // Borrow the shell's single, app-lifetime VideoSurfaceHost instead of constructing a new
-        // one (ADR-0012): keeping the same swap-chain identity across "go Home and back" means
-        // AttachVideoSurfaceAsync's swap-chain-options-equal check finds nothing changed and skips
-        // the native renderer rebuild that used to reset playback to the start on every return.
-        if (AppShell.Current is { } shell)
-        {
-            _videoHost = shell.VideoHost;
-            shell.AttachVideoHostTo(VideoHostSlot);
-            _videoHost.Initialized -= VideoHost_Initialized;
-            _videoHost.Initialized += VideoHost_Initialized;
-        }
 
         _engine = PlaySphereServices.GetOptional<IMediaPlaybackEngine>();
         _visualizerFrames = PlaySphereServices.GetOptional<ILatestAnalysisFrameProvider>();
@@ -277,24 +253,21 @@ public sealed partial class PlayerPage : Page
             }
         }
 
-        // The shared surface is almost always already initialized by this point (either from an
-        // earlier PlayerPage instance, or because the shell parks it at app startup), so this is
-        // now the common path, not the rare one the original comment described. Otherwise
-        // VideoHost_Initialized handles the first-ever initialization.
-        if (_videoSurfaceAttached is false && _videoHost?.SwapChainOptions != null)
+        // If the video surface already initialized before navigation (unlikely on first load,
+        // but possible on re-entry), attach now. Otherwise VideoHost_Initialized handles it.
+        if (_videoSurfaceAttached is false && VideoHost.SwapChainOptions != null)
         {
             await AttachVideoHostAsync();
         }
     }
 
     /// <summary>
-    /// Binds the playback engine's video renderer to the shared <see cref="_videoHost"/> surface so
-    /// decoded frames draw into the swap chain. Called once the underlying VideoView's swap-chain
-    /// is ready.
+    /// Binds the playback engine's video renderer to the <see cref="VideoHost"/> surface so decoded
+    /// frames draw into the swap chain. Called once the underlying VideoView's swap-chain is ready.
     /// </summary>
     private async Task AttachVideoHostAsync()
     {
-        if (_engine == null || _videoHost == null || _videoSurfaceAttached)
+        if (_engine == null || _videoSurfaceAttached)
         {
             return;
         }
@@ -335,7 +308,7 @@ public sealed partial class PlayerPage : Page
 
         try
         {
-            await _engine.AttachVideoSurfaceAsync(_videoHost);
+            await _engine.AttachVideoSurfaceAsync(VideoHost);
         }
         catch (Exception ex)
         {
