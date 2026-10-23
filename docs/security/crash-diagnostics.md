@@ -86,13 +86,13 @@ themselves are not deleted.
 
 ### Support address
 
-The To address is `DiagnosticReportDefaults.SupportEmail` in
-`src/PlaySphere.Application/Diagnostics/DiagnosticReportDefaults.cs`
-(overridable at startup via `DiagnosticReportOptions` passed to `AddPlaySphereDiagnostics`).
-The checked-in value is the placeholder `beta-feedback@livisoftware.example` — a reserved
-`.example` domain, so an unconfigured build cannot deliver mail. **Change that constant to the
-real support mailbox before shipping a tester build.** The Help page shows a warning while the
-placeholder is still in place. Testers cannot retarget the address from the UI.
+The To address is `contact@liviverse.com`, the shipped value of
+`DiagnosticReportDefaults.SupportEmail` in
+`src/PlaySphere.Application/Diagnostics/DiagnosticReportDefaults.cs`.
+A build can point somewhere else by passing `DiagnosticReportOptions.SupportEmail` to
+`AddPlaySphereDiagnostics` (wired in `App.xaml.cs`). Testers cannot retarget the address
+from the UI. The Help page warns only if that address is still a reserved `.example`
+placeholder; the shipped address does not show that warning.
 
 ## What this doesn't do
 

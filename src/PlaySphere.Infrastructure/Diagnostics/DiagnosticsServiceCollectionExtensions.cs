@@ -6,9 +6,9 @@ namespace PlaySphere.Infrastructure.Diagnostics;
 public static class DiagnosticsServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers the local diagnostic packer. Pass <paramref name="options"/> to point a tester
-    /// build at a real support address (<see cref="DiagnosticReportDefaults.SupportEmail"/> is a
-    /// placeholder). The packer never opens the network.
+    /// Registers the local diagnostic packer. The support address defaults to
+    /// <see cref="DiagnosticReportDefaults.SupportEmail"/>. Pass <paramref name="options"/> to
+    /// point a build at a different mailbox. The packer never opens the network.
     /// </summary>
     public static IServiceCollection AddPlaySphereDiagnostics(
         this IServiceCollection services,

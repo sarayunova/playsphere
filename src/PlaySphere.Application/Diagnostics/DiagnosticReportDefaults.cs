@@ -1,15 +1,13 @@
 namespace PlaySphere.Application.Diagnostics;
 
 /// <summary>
-/// Where a tester's diagnostic email is addressed. This is the single address to change
-/// before a build is handed to testers — <see cref="DiagnosticReportOptions.SupportEmail"/>
-/// can override it at startup, and nothing else should hard-code a destination.
-/// The default is a reserved <c>.example</c> address so an unconfigured build cannot
-/// deliver mail to a real mailbox.
+/// Where a tester's diagnostic email is addressed. The shipped default is the LiVi
+/// support mailbox. <see cref="DiagnosticReportOptions.SupportEmail"/> can override it
+/// at startup, and nothing else should hard-code a destination.
 /// </summary>
 public static class DiagnosticReportDefaults
 {
-    public const string SupportEmail = "beta-feedback@livisoftware.example";
+    public const string SupportEmail = "contact@liviverse.com";
 
     /// <summary>
     /// True when <paramref name="email"/> is a plausible address whose domain ends in the

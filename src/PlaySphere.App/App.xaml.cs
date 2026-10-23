@@ -57,7 +57,7 @@ public partial class App : Microsoft.UI.Xaml.Application
             .AddPlaySpherePreferences()
             .AddPlaySphereDiagnostics(new DiagnosticReportOptions
             {
-                // Placeholder until a tester build. Change DiagnosticReportDefaults.SupportEmail.
+                // Shipped tester default. Pass a different SupportEmail here to retarget a build.
                 SupportEmail = DiagnosticReportDefaults.SupportEmail,
             })
             .AddPlaySphereVisualizer()

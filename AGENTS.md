@@ -2145,8 +2145,9 @@ tools/verify-environment.ps1     # dotnet + NuGet checks
   (RFC 6068; MAPI is not reliable for unpackaged WinUI), so the body tells the tester to attach the
   selected zip and press Send — nothing is uploaded before that. If the zip or the mail client
   fails, the page offers Open log folder / Copy path. The To address is
-  `DiagnosticReportDefaults.SupportEmail` (`beta-feedback@livisoftware.example` until replaced —
-  the Help page warns while that placeholder is still set). Override point:
+  `contact@liviverse.com` (`DiagnosticReportDefaults.SupportEmail`). The Help page warns only
+  if a build is still pointed at a reserved `.example` placeholder; the shipped address does
+  not show that warning. Override point:
   `AddPlaySphereDiagnostics` / `DiagnosticReportOptions` in `App.xaml.cs`. Documented in
   `docs/security/crash-diagnostics.md` and `docs/security/privacy.md`. Tests:
   `DiagnosticReportTests` (selection, mailto, redaction, confirmation) and `DiagnosticPackTests`
@@ -2176,7 +2177,7 @@ tools/verify-environment.ps1     # dotnet + NuGet checks
      working through that list against real tester reports rather than guessing priority.
   6. **Tester feedback / crash-report loop — DONE (2026-10-23).** Help → Report a problem packs
      the local logs and opens a mailto compose window. See the "Tester diagnostic report" entry
-     above and `docs/security/crash-diagnostics.md`. Still required before a real tester build:
-     replace `DiagnosticReportDefaults.SupportEmail` (it is still the `.example` placeholder) and
-     do the manual click-through (the dev environment has no desktop UI automation). Certificate
+     above and `docs/security/crash-diagnostics.md`. The shipped To address is
+     `contact@liviverse.com`. Still required before a real tester build: the manual
+     click-through (the dev environment has no desktop UI automation). Certificate
      trust (#1) remains the other blocker for anyone who is not the developer.

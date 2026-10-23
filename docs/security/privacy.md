@@ -22,7 +22,7 @@ stays on disk, and the message is sent only if the tester presses Send in their 
 Media files, thumbnails, `preferences.json`, and source media are never put in the zip.
 `library.db` is included only when the tester checks that box (off by default). There is no
 telemetry SDK and no background crash uploader — confirmed by searching all source projects, not
-just asserted. The support address is a build-time setting
+just asserted. The support address is the build-time setting `contact@liviverse.com`
 (`DiagnosticReportDefaults.SupportEmail`), not something the app phones home to discover.
 
 ## The one exception: opt-in AI features (PlaySphere.AI)

@@ -141,6 +141,7 @@ public sealed class DiagnosticReportTests
         Assert.Contains("left out unless you check the box", off, StringComparison.Ordinal);
         Assert.Contains("never included", off, StringComparison.Ordinal);
         Assert.Contains(DiagnosticReportDefaults.SupportEmail, off, StringComparison.Ordinal);
+        Assert.DoesNotContain("placeholder", off, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Nothing is uploaded", off, StringComparison.Ordinal);
 
         var on = DiagnosticReportText.FormatFileList(inventory, includeLibraryDatabase: true);
@@ -199,14 +200,17 @@ public sealed class DiagnosticReportTests
     }
 
     [Fact]
-    public void Default_support_address_is_a_placeholder_until_replaced()
+    public void Default_support_address_is_the_liviverse_mailbox()
     {
+        Assert.Equal("contact@liviverse.com", DiagnosticReportDefaults.SupportEmail);
         Assert.True(DiagnosticReportDefaults.IsPlausibleSupportEmail(DiagnosticReportDefaults.SupportEmail));
-        Assert.True(DiagnosticReportDefaults.IsPlaceholderAddress(DiagnosticReportDefaults.SupportEmail));
+        Assert.False(DiagnosticReportDefaults.IsPlaceholderAddress(DiagnosticReportDefaults.SupportEmail));
+        Assert.True(DiagnosticReportDefaults.IsPlaceholderAddress("beta-feedback@livisoftware.example"));
         Assert.False(DiagnosticReportDefaults.IsPlaceholderAddress("dev@livisoftware.com"));
         Assert.False(DiagnosticReportDefaults.IsPlausibleSupportEmail("a@b"));
-        Assert.NotNull(DiagnosticReportText.PlaceholderWarning(DiagnosticReportDefaults.SupportEmail));
-        Assert.Null(DiagnosticReportText.PlaceholderWarning("dev@livisoftware.com"));
+        Assert.Null(DiagnosticReportText.PlaceholderWarning(DiagnosticReportDefaults.SupportEmail));
+        Assert.NotNull(DiagnosticReportText.PlaceholderWarning("beta-feedback@livisoftware.example"));
+        Assert.Null(DiagnosticReportText.PlaceholderWarning("dev@liviverse.com"));
     }
 
     [Fact]
