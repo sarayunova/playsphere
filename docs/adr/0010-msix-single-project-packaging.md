@@ -39,10 +39,16 @@ requires manually trusting the certificate on a test machine. A real signing str
 certificate, Azure Trusted Signing, or Microsoft Store signing) is an **explicit open decision**
 left for a later phase — see "Consequences" below. This ADR does not pick one.
 
-**Update mechanism:** MSIX App Installer (`.appinstaller`), pointed at this repository's GitHub
-Releases. Chosen over the Microsoft Store because no Store developer account is confirmed to
+**Update mechanism:** MSIX App Installer (`.appinstaller`), pointed at this repository's public
+GitHub Releases. Chosen over the Microsoft Store because no Store developer account is confirmed to
 exist for this project; App Installer needs only a stable download URL, which GitHub Releases
-already provides.
+already provides. Clients poll the Uri in the `.appinstaller` file. That Uri, and the package Uri
+beside it, are public latest-asset URLs
+(`https://github.com/sarayunova/playsphere/releases/latest/download/<asset>`), using the file
+names the release workflow uploads. A tag URL (`releases/download/vX.Y.Z/...`) keeps returning
+the file from that tag, so an installed client would never observe a later release. The
+repository has to stay public: Windows App Installer does not send GitHub credentials. Details:
+`docs/release/update-mechanism.md`.
 
 **Data location:** the on-disk per-user data folder stays `%LOCALAPPDATA%\LiVi PlaySphere
 Studio\` unchanged. Packaged (non-Store-sandboxed, `runFullTrust`) MSIX apps still get normal
