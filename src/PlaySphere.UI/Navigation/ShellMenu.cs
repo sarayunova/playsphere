@@ -19,5 +19,6 @@ public static class ShellMenu
         new(AppRoutes.Playlists, "Playlists", Symbol.Bullets),
         new(AppRoutes.Streams, "Streams", Symbol.Link),
         new(AppRoutes.AiMedia, "AI Media", Symbol.AllApps),
+        new(AppRoutes.Help, "Help", Symbol.Help),
     ];
 }

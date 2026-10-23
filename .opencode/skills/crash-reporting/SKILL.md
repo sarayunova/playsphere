@@ -16,3 +16,6 @@ Native AVs bypass the managed handler entirely. Key lessons recorded in AGENTS.m
 
 ## Boundaries
 Never attempt risky native object rebuilds to hack around a crash class (see the reverted visualizer Stop→Play cycle). Prefer safe managed reload/rebind paths and deferrals.
+
+## Tester reports
+Help → Report a problem packs local logs into a zip and opens a mailto compose window. Nothing is uploaded. See `docs/security/crash-diagnostics.md`. Change `DiagnosticReportDefaults.SupportEmail` before a tester build. Do not add Sentry, App Center, or any auto-upload.

@@ -1,0 +1,113 @@
+<Page
+    x:Class="PlaySphere.UI.Pages.HelpPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{ThemeResource BrushBackgroundPrimary}"
+    Loaded="Page_Loaded">
+
+    <ScrollViewer Padding="28" VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="{ThemeResource SpacingMedium}" MaxWidth="920" HorizontalAlignment="Stretch">
+            <StackPanel Spacing="{ThemeResource SpacingExtraSmall}">
+                <TextBlock Style="{ThemeResource PageTitleTextStyle}" Text="Help" />
+                <TextBlock
+                    Style="{ThemeResource SecondaryTextStyle}"
+                    Text="Report a problem to the PlaySphere developer. Logs stay on this PC until you press Send in your own email app."
+                    TextWrapping="Wrap" />
+            </StackPanel>
+
+            <Border
+                Style="{ThemeResource EmptyStateCardStyle}"
+                Padding="16"
+                CornerRadius="{ThemeResource CardCornerRadius}">
+                <StackPanel Spacing="{ThemeResource SpacingSmall}">
+                    <TextBlock Style="{ThemeResource SectionHeaderTextStyle}" Text="Report a problem" />
+                    <TextBlock
+                        x:Name="SupportEmailText"
+                        Style="{ThemeResource MutedTextStyle}"
+                        TextWrapping="Wrap" />
+                    <TextBlock
+                        x:Name="PlaceholderWarningText"
+                        Foreground="{ThemeResource BrushWarning}"
+                        TextWrapping="Wrap"
+                        Visibility="Collapsed" />
+
+                    <TextBox
+                        x:Name="DescriptionBox"
+                        Header="What happened?"
+                        PlaceholderText="Optional. A sentence or two is enough."
+                        AcceptsReturn="True"
+                        TextWrapping="Wrap"
+                        MinHeight="120"
+                        MaxLength="4000"
+                        AutomationProperties.Name="What happened" />
+
+                    <TextBox
+                        x:Name="ContactBox"
+                        Header="Your email"
+                        PlaceholderText="Optional. So a reply can reach you."
+                        MaxLength="200"
+                        AutomationProperties.Name="Your email" />
+
+                    <TextBlock
+                        Style="{ThemeResource SectionHeaderTextStyle}"
+                        Text="Files in this report"
+                        Margin="0,8,0,0" />
+                    <TextBlock
+                        x:Name="LogListText"
+                        Style="{ThemeResource MutedTextStyle}"
+                        TextWrapping="Wrap" />
+
+                    <CheckBox
+                        x:Name="IncludeLibraryCheckBox"
+                        Content="Include library database (optional)"
+                        Checked="IncludeLibraryCheckBox_Changed"
+                        Unchecked="IncludeLibraryCheckBox_Changed"
+                        AutomationProperties.Name="Include library database" />
+                    <TextBlock
+                        Style="{ThemeResource MutedTextStyle}"
+                        Text="Off by default. Adds library.db and its SQLite sidecars — file paths and watch history only. Media files are never included."
+                        TextWrapping="Wrap" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="{ThemeResource SpacingSmall}">
+                        <Button
+                            x:Name="SendReportButton"
+                            Content="Report a problem"
+                            Click="SendReportButton_Click"
+                            AutomationProperties.Name="Report a problem" />
+                        <Button
+                            x:Name="OpenLogFolderButton"
+                            Content="Open log folder"
+                            Click="OpenLogFolderButton_Click"
+                            AutomationProperties.Name="Open log folder" />
+                        <Button
+                            x:Name="CopyLogFolderButton"
+                            Content="Copy log folder path"
+                            Click="CopyLogFolderButton_Click"
+                            AutomationProperties.Name="Copy log folder path" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="{ThemeResource SpacingSmall}">
+                        <Button
+                            x:Name="ShowZipButton"
+                            Content="Show the zip"
+                            Visibility="Collapsed"
+                            Click="ShowZipButton_Click"
+                            AutomationProperties.Name="Show the zip" />
+                        <Button
+                            x:Name="CopyZipPathButton"
+                            Content="Copy zip path"
+                            Visibility="Collapsed"
+                            Click="CopyZipPathButton_Click"
+                            AutomationProperties.Name="Copy zip path" />
+                    </StackPanel>
+
+                    <TextBlock
+                        x:Name="StatusText"
+                        Style="{ThemeResource MutedTextStyle}"
+                        TextWrapping="Wrap"
+                        IsTextSelectionEnabled="True" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

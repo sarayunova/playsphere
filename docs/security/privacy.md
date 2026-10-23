@@ -13,12 +13,17 @@ PlaySphere is offline-first. With AI features untouched, nothing it does reaches
 Everything it stores lives under `%LOCALAPPDATA%\LiVi PlaySphere Studio\` on the local machine:
 preferences (`preferences.json`), the media library database, thumbnail/waveform caches, and
 diagnostic logs (`visualizer-audio.log`, `libvlc.log`, and `crash.log` - see
-[crash-diagnostics.md](crash-diagnostics.md)). None of this is transmitted anywhere by the app -
-if you ever need to share `crash.log` with someone to diagnose a bug, that's a manual, deliberate
-action you take, not something the app does on your behalf.
+[crash-diagnostics.md](crash-diagnostics.md)). None of this is transmitted anywhere by the app
+on its own.
 
-There is no telemetry, analytics, or crash-reporting SDK anywhere in the codebase - confirmed by
-searching all source projects, not just asserted.
+Help → **Report a problem** can pack those logs (and the note the tester types) into a zip and
+open the local email app with a prefilled message. That still does not upload anything: the zip
+stays on disk, and the message is sent only if the tester presses Send in their own mail client.
+Media files, thumbnails, `preferences.json`, and source media are never put in the zip.
+`library.db` is included only when the tester checks that box (off by default). There is no
+telemetry SDK and no background crash uploader — confirmed by searching all source projects, not
+just asserted. The support address is a build-time setting
+(`DiagnosticReportDefaults.SupportEmail`), not something the app phones home to discover.
 
 ## The one exception: opt-in AI features (PlaySphere.AI)
 

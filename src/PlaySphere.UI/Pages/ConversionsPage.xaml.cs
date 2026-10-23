@@ -167,24 +167,42 @@ public sealed partial class ConversionsPage : Page
 /// <summary>Opens Windows Explorer at a given path (surfacing the output of a finished job).</summary>
 internal static class ExplorerHelper
 {
-    public static void OpenContainingFolder(string path)
+    public static bool OpenContainingFolder(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
-            return;
+            return false;
         }
 
+        return StartExplorer($"/select,\"{path}\"");
+    }
+
+    /// <summary>Opens Explorer in a folder (the diagnostic log directory, for example).</summary>
+    public static bool OpenFolder(string directory)
+    {
+        if (string.IsNullOrWhiteSpace(directory))
+        {
+            return false;
+        }
+
+        return StartExplorer($"\"{directory}\"");
+    }
+
+    private static bool StartExplorer(string arguments)
+    {
         try
         {
-            var ps = new ProcessStartInfo("explorer.exe", $"/select,\"{path}\"")
+            var ps = new ProcessStartInfo("explorer.exe", arguments)
             {
                 UseShellExecute = false,
             };
             Process.Start(ps);
+            return true;
         }
         catch
         {
             // Best effort — never take the UI down launching Explorer.
+            return false;
         }
     }
 }

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using PlaySphere.Application.Diagnostics;
 using PlaySphere.Application.Preferences;
 
 namespace PlaySphere.Infrastructure.Preferences;
@@ -15,8 +16,7 @@ public static class PreferencesServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         var path = filePath ?? Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "LiVi PlaySphere Studio",
+            DiagnosticReportLocations.DefaultDataDirectory(),
             "preferences.json");
 
         services.AddSingleton<IPreferencesStore>(_ => new JsonPreferencesStore(path));

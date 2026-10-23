@@ -18,5 +18,6 @@ public static class RouteRegistry
             [AppRoutes.AiMedia] = typeof(Pages.AiMediaPage),
             [AppRoutes.Conversions] = typeof(Pages.ConversionsPage),
             [AppRoutes.Player] = typeof(Pages.PlayerPage),
+            [AppRoutes.Help] = typeof(Pages.HelpPage),
         };
 }

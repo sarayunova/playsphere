@@ -36,13 +36,71 @@ crash-loop can't grow the file unboundedly - it does not guarantee against store
 edge cases, which are caught and swallowed (logging failures must never take the app down further
 than the original crash already did).
 
+## Sending a report from the app
+
+Help → **Report a problem** (left navigation) packs the local diagnostic files that exist and
+opens the tester's own email app. Nothing is uploaded. The tester reviews the message and presses
+Send themselves. There is still no Sentry, App Center, Application Insights, or any other
+automatic crash service.
+
+The zip is written under `%LOCALAPPDATA%\LiVi PlaySphere Studio\reports\`
+(`PlaySphere-diagnostics-yyyyMMdd-HHmmssfff.zip`). It contains `report.txt` (the optional note,
+optional reply address, app version, and a list of what was included) plus whichever of these
+files are actually on disk:
+
+| File | What it is |
+|---|---|
+| `crash.log` | Unhandled managed exceptions and playback errors |
+| `crash.log.old` | The previous `crash.log`, after the 5 MB rotation above |
+| `libvlc.log` | libVLC native diagnostics |
+| `visualizer-audio.log` | Visualizer WASAPI loopback trace |
+
+Missing files are skipped. Each text log is tailed to the last 2 MB so a huge `libvlc.log` cannot
+turn the zip into an unbounded attachment. OpenAI-style API keys and bearer tokens in those logs
+(and in the typed note) are redacted before they are packed.
+
+**Not included**, even if they sit in the same folder: media files, thumbnails, `preferences.json`,
+and source media. `library.db` (and its `library.db-wal` / `library.db-shm` sidecars) is included
+only when the tester checks **Include library database**. That box is off by default. A database
+larger than 16 MB is skipped rather than truncated, because a partial SQLite file is not useful.
+Symlinks are not followed.
+
+### Why the email does not attach the zip by itself
+
+`mailto:` (RFC 6068) has no attachment parameter. A non-standard `attach=` query works only in
+some desktop Outlook versions and fails silently everywhere else, so it is not used. MAPI
+(`MAPISendMail`) can attach a file, but only when a desktop MAPI client is installed — the
+Windows 11 Mail app and new Outlook do not reliably expose that to an unpackaged WinUI process.
+The app therefore:
+
+1. Saves the zip in the `reports` folder above.
+2. Opens File Explorer with that zip selected (`explorer.exe /select`).
+3. Opens the default mail client with To, Subject, and Body filled in. The body names the zip
+   path and asks the tester to drag it in or use Attach, then press Send.
+
+If the zip cannot be created, or no mail client can be opened, the page shows the reason and
+offers **Open log folder** and **Copy path** so the tester is not stuck.
+
+Zips in `reports` older than 14 days are deleted the next time a report is created. The logs
+themselves are not deleted.
+
+### Support address
+
+The To address is `DiagnosticReportDefaults.SupportEmail` in
+`src/PlaySphere.Application/Diagnostics/DiagnosticReportDefaults.cs`
+(overridable at startup via `DiagnosticReportOptions` passed to `AddPlaySphereDiagnostics`).
+The checked-in value is the placeholder `beta-feedback@livisoftware.example` — a reserved
+`.example` domain, so an unconfigured build cannot deliver mail. **Change that constant to the
+real support mailbox before shipping a tester build.** The Help page shows a warning while the
+placeholder is still in place. Testers cannot retarget the address from the UI.
+
 ## What this doesn't do
 
-- No automatic reporting, upload, or user prompt to send `crash.log` anywhere - a user or
-  developer must find and share it manually if diagnosing a real user's crash.
+- No automatic reporting or upload. The email is sent only if the tester presses Send.
 - No structured crash grouping/deduplication (that's what a real crash-reporting service would
   add) - this is a flat text log meant for manual inspection, not a dashboard.
 - No dump-file (`.dmp`) capture - only the managed exception's message and stack trace, which
   covers most .NET-level bugs but not a native-code crash inside libVLC/ffmpeg itself (those
   still terminate the process without a managed exception to catch; the existing `libvlc.log`
-  native message log is the closest existing diagnostic for that class of failure).
+  native message log is the closest existing diagnostic for that class of failure, and it is
+  included in the zip when the file exists).

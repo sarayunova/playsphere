@@ -671,12 +671,10 @@ public sealed partial class PlayerPage : Page
     {
         try
         {
-            var dir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "LiVi PlaySphere Studio");
+            var dir = PlaySphere.Application.Diagnostics.DiagnosticReportLocations.DefaultDataDirectory();
             Directory.CreateDirectory(dir);
             File.AppendAllText(
-                Path.Combine(dir, "crash.log"),
+                Path.Combine(dir, PlaySphere.Application.Diagnostics.DiagnosticLogCatalog.CrashLogFileName),
                 $"[{DateTime.UtcNow:o}] PlaybackError: {message}\n");
         }
         catch
