@@ -3,6 +3,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using PlaySphere.AI;
 using PlaySphere.Audio;
+using PlaySphere.Application.Diagnostics;
+using PlaySphere.Infrastructure.Diagnostics;
 using PlaySphere.Infrastructure.Library;
 using PlaySphere.Infrastructure.Preferences;
 using PlaySphere.Library;
@@ -37,10 +39,7 @@ public partial class App : Microsoft.UI.Xaml.Application
 
         // Unpackaged app (ADR-0001): use the classic per-user AppData path, not
         // Windows.Storage.ApplicationData, which requires package identity.
-        var dbPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "LiVi PlaySphere Studio",
-            "library.db");
+        var dbPath = Path.Combine(DiagnosticReportLocations.DefaultDataDirectory(), "library.db");
 
         Services = new ServiceCollection()
             .AddLogging(builder => builder.AddDebug().SetMinimumLevel(LogLevel.Information))
@@ -56,6 +55,11 @@ public partial class App : Microsoft.UI.Xaml.Application
             .AddPlaySphereAudioExtraction(ConfigureFfMpegAudioExtractOptions())
             .AddPlaySphereConversionQueue()
             .AddPlaySpherePreferences()
+            .AddPlaySphereDiagnostics(new DiagnosticReportOptions
+            {
+                // Shipped tester default. Pass a different SupportEmail here to retarget a build.
+                SupportEmail = DiagnosticReportDefaults.SupportEmail,
+            })
             .AddPlaySphereVisualizer()
             .AddPlaySphereAudio()
             .AddPlaySphereStereoBalance(ConfigureStereoBalanceOptions())
@@ -91,17 +95,15 @@ public partial class App : Microsoft.UI.Xaml.Application
 
         try
         {
-            var dir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "LiVi PlaySphere Studio");
+            var dir = DiagnosticReportLocations.DefaultDataDirectory();
             Directory.CreateDirectory(dir);
-            var logPath = Path.Combine(dir, "crash.log");
+            var logPath = Path.Combine(dir, DiagnosticLogCatalog.CrashLogFileName);
 
             // Cap unbounded growth from a repeated crash loop: keep one rotated copy.
             const long maxBytes = 5 * 1024 * 1024;
             if (File.Exists(logPath) && new FileInfo(logPath).Length > maxBytes)
             {
-                File.Copy(logPath, Path.Combine(dir, "crash.log.old"), overwrite: true);
+                File.Copy(logPath, Path.Combine(dir, DiagnosticLogCatalog.CrashLogRotationFileName), overwrite: true);
                 File.Delete(logPath);
             }
 
@@ -232,9 +234,8 @@ private static ThumbnailStripOptions? ConfigureFfMpegThumbnailOptions()
     private static Action<PlaySphere.Playback.LibVLC.LibVlcOptions> ConfigureLibVlcOptions()
     {
         var logFile = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "LiVi PlaySphere Studio",
-            "libvlc.log");
+            DiagnosticReportLocations.DefaultDataDirectory(),
+            DiagnosticLogCatalog.LibVlcLogFileName);
         return o =>
         {
             o.Verbosity = 2;

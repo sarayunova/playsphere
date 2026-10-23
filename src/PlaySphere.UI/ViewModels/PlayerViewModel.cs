@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using PlaySphere.Application.AI;
+using PlaySphere.Application.Diagnostics;
 using PlaySphere.Application.Library;
 using PlaySphere.Application.Media;
 using PlaySphere.Application.Preferences;
@@ -1232,7 +1233,7 @@ public sealed class PlayerViewModel : INotifyPropertyChanged, IDisposable
     }
 
     private static string DefaultThumbnailStripDirectory() =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LiVi PlaySphere Studio", "thumbstrips");
+        Path.Combine(DiagnosticReportLocations.DefaultDataDirectory(), "thumbstrips");
 
     // ── Phase 7 (PS-705): Timeline waveform (PICKLE.md §20) ─────────────────
 
@@ -1294,7 +1295,7 @@ public sealed class PlayerViewModel : INotifyPropertyChanged, IDisposable
     }
 
     private static string DefaultWaveformDirectory() =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LiVi PlaySphere Studio", "waveforms");
+        Path.Combine(DiagnosticReportLocations.DefaultDataDirectory(), "waveforms");
 
     /// <summary>Seeks backward by 10 seconds, clamped to zero.</summary>
     public async Task SkipBackAsync()
@@ -1992,8 +1993,7 @@ public sealed class PlayerViewModel : INotifyPropertyChanged, IDisposable
         try
         {
             var thumbsDir = _thumbnailDirectory ?? Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "LiVi PlaySphere Studio", "thumbs");
+                DiagnosticReportLocations.DefaultDataDirectory(), "thumbs");
             Directory.CreateDirectory(thumbsDir);
             var outputPath = Path.Combine(thumbsDir, $"{item.Fingerprint}.jpg");
 

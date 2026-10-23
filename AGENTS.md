@@ -2133,6 +2133,27 @@ tools/verify-environment.ps1     # dotnet + NuGet checks
   ADR-0012 reverted (video-surface persistence bug fix attempt), so the pre-existing "returning to the
   player from Home resets video to the start" limitation is present in this beta as before — not new,
   not worse, just still there.
+- **Tester diagnostic report (post-beta punch list #6) COMPLETE (2026-10-23)** (engineering-verified;
+  see manual-QA caveat). Help in the left nav opens **Report a problem**: optional note, optional
+  reply address, a live list of which local logs will be included, and an off-by-default checkbox
+  for `library.db` (+ wal/shm). Confirm creates a zip under
+  `%LOCALAPPDATA%\LiVi PlaySphere Studio\reports\` containing `report.txt` plus whichever of
+  `crash.log`, `crash.log.old`, `libvlc.log`, and `visualizer-audio.log` exist (missing files
+  skipped, logs tailed to 2 MB, OpenAI-style keys redacted). Media, thumbnails, `preferences.json`,
+  and source media are never packed. Symlinks are not followed. File Explorer then selects the zip
+  and the default mail client opens with To/Subject/Body filled in. `mailto:` cannot attach files
+  (RFC 6068; MAPI is not reliable for unpackaged WinUI), so the body tells the tester to attach the
+  selected zip and press Send — nothing is uploaded before that. If the zip or the mail client
+  fails, the page offers Open log folder / Copy path. The To address is
+  `contact@liviverse.com` (`DiagnosticReportDefaults.SupportEmail`). The Help page warns only
+  if a build is still pointed at a reserved `.example` placeholder; the shipped address does
+  not show that warning. Override point:
+  `AddPlaySphereDiagnostics` / `DiagnosticReportOptions` in `App.xaml.cs`. Documented in
+  `docs/security/crash-diagnostics.md` and `docs/security/privacy.md`. Tests:
+  `DiagnosticReportTests` (selection, mailto, redaction, confirmation) and `DiagnosticPackTests`
+  (real zip: present/missing logs, media excluded, library opt-in, truncation, symlink, reports-folder
+  failure, retention). Manual-QA caveat: no interactive desktop UI automation here, so the Help
+  page, the confirm dialog, Explorer, and the mail client were not clicked through.
 - **Post-beta-launch punch list (requested by the user, to pick up next session):** in priority order —
   1. **Certificate-trust friction is a real blocker for testers who aren't the machine owner.** The
      self-signed dev cert (ADR-0010) means every beta tester must manually trust a certificate before
@@ -2154,10 +2175,9 @@ tools/verify-environment.ps1     # dotnet + NuGet checks
      visualizer presets, the full AI chain, Phase 7 tools, etc.) — real beta usage is exactly what will
      surface which of these are actually fine vs. actually broken, so this is a good time to start
      working through that list against real tester reports rather than guessing priority.
-  6. **No feedback/crash-collection loop exists for testers.** `docs/security/crash-diagnostics.md`
-     documents the local `crash.log`/`libvlc.log`/`visualizer-audio.log` files, but there is no mechanism
-     for a tester to *send* those to the developer — right now a tester hitting a crash only helps if
-     they manually find and share the log file themselves. Of everything on this list, the user's own
-     stated view was that **#6 (a way for testers to report problems) and #1 (cert-trust friction)**
-     matter most before handing this to anyone who isn't the developer — everything else (especially
-     #5) is better prioritized *from* the feedback #6 would provide, rather than guessed at now.
+  6. **Tester feedback / crash-report loop — DONE (2026-10-23).** Help → Report a problem packs
+     the local logs and opens a mailto compose window. See the "Tester diagnostic report" entry
+     above and `docs/security/crash-diagnostics.md`. The shipped To address is
+     `contact@liviverse.com`. Still required before a real tester build: the manual
+     click-through (the dev environment has no desktop UI automation). Certificate
+     trust (#1) remains the other blocker for anyone who is not the developer.

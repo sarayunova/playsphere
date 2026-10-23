@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text;
 using System.Threading;
+using PlaySphere.Application.Diagnostics;
 
 namespace PlaySphere.Audio;
 
@@ -73,7 +74,6 @@ public static class VisualizerAudioTrace
 
     private static string BuildDefaultPath()
         => Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "LiVi PlaySphere Studio",
-            "visualizer-audio.log");
+            DiagnosticReportLocations.DefaultDataDirectory(),
+            DiagnosticLogCatalog.VisualizerAudioLogFileName);
 }

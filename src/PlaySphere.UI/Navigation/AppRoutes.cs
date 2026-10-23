@@ -14,6 +14,7 @@ public static class AppRoutes
     public const string AiMedia = "ai";
     public const string Player = "player";
     public const string Conversions = "conversions";
+    public const string Help = "help";
 
     /// <summary>All shell menu routes, in display order.</summary>
     public static IReadOnlyList<string> All { get; } =
@@ -24,5 +25,6 @@ public static class AppRoutes
         Playlists,
         Streams,
         AiMedia,
+        Help,
     ];
 }
