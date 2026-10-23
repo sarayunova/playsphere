@@ -2,6 +2,8 @@ name: Release
 
 # Phase 10 / ADR-0010: packages and publishes a signed MSIX to GitHub Releases whenever a
 # vX.Y.Z tag is pushed, plus an .appinstaller so users get in-app updates without a Store account.
+# The .appinstaller points at /releases/latest/download/<asset> (public, unauthenticated), not at
+# this tag's /releases/download/vX.Y.Z/ URL, so installed clients keep resolving the latest release.
 # Signs with a throwaway self-signed dev certificate (see docs/security/code-signing.md) - a real
 # signing strategy (paid CA / Azure Trusted Signing / Store) is an explicit open decision the ADR
 # does not make. Each run's certificate is new, so users must re-trust it on every release until
@@ -56,19 +58,19 @@ jobs:
           $msix = Get-ChildItem -Path $packageDir -Filter '*.msix' -Recurse | Select-Object -First 1
           if (-not $msix) { throw "No .msix found under $packageDir" }
 
-          $tag = "${{ github.ref_name }}"
+          # Asset file names uploaded below must match the names baked into the .appinstaller.
+          # GitHub's /releases/latest/download/<name> lookup is an exact match on the latest
+          # release. The .msix keeps the packager's file name; the .appinstaller and .cer use
+          # stable names so the update URL does not change between tags.
           $repo = "${{ github.repository }}"
-          $msixUri = "https://github.com/$repo/releases/download/$tag/$($msix.Name)"
-          $appInstallerUri = "https://github.com/$repo/releases/download/$tag/PlaySphere.App.appinstaller"
-
           $assetsDir = 'release-assets'
           New-Item -ItemType Directory -Path $assetsDir -Force | Out-Null
           Copy-Item $msix.FullName -Destination $assetsDir
           Copy-Item (Join-Path $msix.DirectoryName 'dev-signing-cert.cer') -Destination (Join-Path $assetsDir 'PlaySphere.App.cer')
 
           tools/generate-appinstaller.ps1 `
-            -MsixUri $msixUri `
-            -AppInstallerUri $appInstallerUri `
+            -Repository $repo `
+            -MsixFileName $msix.Name `
             -OutputPath (Join-Path $assetsDir 'PlaySphere.App.appinstaller')
 
       - name: Publish GitHub Release
@@ -82,4 +84,4 @@ jobs:
           gh release create "${{ github.ref_name }}" @assets `
             --title "${{ github.ref_name }}" `
             --generate-notes `
-            --notes "**Unsigned by a trusted CA** - this package is signed with a throwaway self-signed development certificate (see docs/security/code-signing.md). Download PlaySphere.App.cer and trust it (``Import-Certificate -CertStoreLocation Cert:\LocalMachine\TrustedPeople``) before installing or updating, or Windows will refuse the package with error 0x800B010A."
+            --notes "**Install and updates:** https://github.com/${{ github.repository }}/releases/latest/download/PlaySphere.App.appinstaller`n`n**Unsigned by a trusted CA** - this package is signed with a throwaway self-signed development certificate (see docs/security/code-signing.md). Download PlaySphere.App.cer from that same latest-release URL and trust it (``Import-Certificate -CertStoreLocation Cert:\LocalMachine\TrustedPeople``) before installing or updating, or Windows will refuse the package with error 0x800B010A."
